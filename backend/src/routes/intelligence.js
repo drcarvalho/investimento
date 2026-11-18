@@ -197,6 +197,382 @@ router.get('/rankings', async (req, res) => {
   }
 });
 
+// GET /api/intelligence/top-picks — Top 10 educational buy recommendations
+router.get('/top-picks', async (req, res) => {
+  try {
+    // Try DB rankings first; fall back to buildFallbackRankings()
+    const rows = await db.allAsync(`
+      SELECT q.*, a.name, a.logo, a.price, a.change_pct,
+             f.pl, f.pvp, f.dy, f.roe, f.roic, f.margem_liquida,
+             f.divida_liquida_ebitda, f.crescimento_receita, f.crescimento_lucro, f.source AS fund_source
+      FROM quant_rankings q
+      LEFT JOIN assets a ON a.symbol = q.symbol
+      LEFT JOIN fundamentals f ON f.symbol = q.symbol
+      ORDER BY q.score DESC
+      LIMIT 10
+    `);
+
+    let liveMap = new Map();
+    try {
+      const liveList = await getFullStockList(150);
+      liveMap = new Map(liveList.map((s) => [s.stock.toUpperCase(), s]));
+    } catch { }
+
+    let picks = [];
+
+    if (rows && rows.length > 0) {
+      picks = rows.map((r) => {
+        const live = liveMap.get(r.symbol.toUpperCase());
+        const st = staticIndicators[r.symbol.toUpperCase()] || {};
+        const price = live?.close ?? r.price ?? st.price ?? null;
+        const metrics = {
+          pl: r.pl ?? st.valuation?.pl ?? null,
+          pvp: r.pvp ?? st.valuation?.pvp ?? null,
+          dy: r.dy ?? st.valuation?.dividendYield ?? null,
+          roe: r.roe ?? st.rentabilidade?.roe ?? null,
+          roic: r.roic ?? st.rentabilidade?.roic ?? null,
+          margemLiquida: r.margem_liquida ?? st.rentabilidade?.margemLiquida ?? null,
+          dividaLiquidaEbitda: r.divida_liquida_ebitda ?? st.endividamento?.dividaLiquidaEbitda ?? null,
+        };
+        return {
+          symbol: r.symbol,
+          name: r.name || live?.name || st.name || r.symbol,
+          logo: r.logo || live?.logo || `https://icons.brapi.dev/icons/${r.symbol}.svg`,
+          sector: r.sector || st.sector || 'B3',
+          price,
+          change: live?.change ?? r.change_pct ?? st.change ?? null,
+          score: r.score,
+          metrics,
+          projections: buildProjections(price, metrics, st),
+          positives: parseJson(r.positives, []),
+          risks: parseJson(r.risks, []),
+          explanation: r.explanation || 'Análise baseada em fundamentos públicos da CVM e cotações de mercado.',
+          learningPoints: buildLearningPoints(r, st),
+          source: r.fund_source || 'engine-python',
+          updatedAt: r.updated_at,
+        };
+      });
+    } else {
+      // Fallback: pick the top 10 from static indicators by score
+      picks = buildFallbackRankings().slice(0, 10).map((r) => {
+        const live = liveMap.get(r.symbol.toUpperCase());
+        if (live) {
+          if (live.close) r.price = live.close;
+          if (typeof live.change === 'number') r.change = live.change;
+          if (live.logo) r.logo = live.logo;
+          if (live.name) r.name = live.name;
+        }
+        const st = staticIndicators[r.symbol.toUpperCase()] || {};
+        r.metrics = {
+          pl: st.valuation?.pl ?? r.metrics?.pl ?? null,
+          pvp: st.valuation?.pvp ?? r.metrics?.pvp ?? null,
+          dy: st.valuation?.dividendYield ?? r.metrics?.dy ?? null,
+          roe: st.rentabilidade?.roe ?? r.metrics?.roe ?? null,
+          roic: st.rentabilidade?.roic ?? r.metrics?.roic ?? null,
+          margemLiquida: st.rentabilidade?.margemLiquida ?? r.metrics?.margemLiquida ?? null,
+          dividaLiquidaEbitda: st.endividamento?.dividaLiquidaEbitda ?? r.metrics?.dividaLiquidaEbitda ?? null,
+        };
+        r.learningPoints = buildLearningPoints(r, st);
+        r.projections = buildProjections(r.price, r.metrics, st);
+        return r;
+      });
+    }
+
+    res.json({
+      count: picks.length,
+      updatedAt: picks[0]?.updatedAt || new Date().toISOString(),
+      disclaimer:
+        'Lista educativa baseada em critérios quantitativos públicos. Não constitui recomendação de investimento.',
+      picks,
+    });
+  } catch (err) {
+    console.error('Error fetching top picks:', err.message);
+    res.status(500).json({ error: 'Falha ao carregar recomendações de estudo' });
+  }
+});
+
+function buildLearningPoints(r, st) {
+  const points = [];
+  const val = st?.valuation || {};
+  const rent = st?.rentabilidade || {};
+  const endiv = st?.endividamento || {};
+  const pl = r.pl ?? val.pl;
+  const dy = r.dy ?? val.dividendYield;
+  const roe = r.roe ?? rent.roe;
+  const divEbitda = r.divida_liquida_ebitda ?? endiv.dividaLiquidaEbitda;
+
+  if (pl && pl > 0 && pl < 12) {
+    points.push(`P/L de ${pl}x indica que o mercado precifica poucos anos de lucro — estude o que torna o valuation baixo e se é sustentável.`);
+  } else if (pl && pl > 25) {
+    points.push(`P/L de ${pl}x é elevado — investigue se o crescimento futuro justifica pagar mais por cada real de lucro.`);
+  }
+  if (dy && dy >= 6) {
+    points.push(`Dividend Yield de ${dy}% mostra pagamento relevante de proventos — compare com a taxa Selic para entender o prêmio de risco.`);
+  }
+  if (roe && roe >= 15) {
+    points.push(`ROE de ${roe}% demonstra eficiência em gerar lucro — analise se é recorrente ou pontual nos últimos 5 anos.`);
+  }
+  if (divEbitda != null && divEbitda <= 2) {
+    points.push(`Dívida Líq./EBITDA de ${divEbitda}x indica endividamento controlado — observe se a empresa tem caixa ou se depende de dívida.`);
+  } else if (divEbitda != null && divEbitda > 3.5) {
+    points.push(`Dívida Líq./EBITDA de ${divEbitda}x é elevada — estude os riscos de alavancagem e os vencimentos da dívida.`);
+  }
+  if (points.length === 0) {
+    points.push('Estude os balanços oficiais na CVM e compare com empresas do mesmo setor.');
+  }
+  points.push('Acesse a página do ativo para ver o gráfico histórico, preço justo (Graham/Bazin) e simulador de dividendos.');
+  return points;
+}
+
+// ─────────────────────────────────────────────────────────────
+// Projection engine — deterministic fundamental-based scenarios
+// ─────────────────────────────────────────────────────────────
+
+/**
+ * Calculates Graham Intrinsic Value: VI = √(22.5 × LPA × VPA)
+ * LPA = price / P/L ; VPA = price / P/VP
+ */
+function calcGraham(price, pl, pvp) {
+  if (!price || !pl || pl <= 0 || !pvp || pvp <= 0) return null;
+  const lpa = price / pl;
+  const vpa = price / pvp;
+  const vi = Math.sqrt(22.5 * lpa * vpa);
+  return Number(vi.toFixed(2));
+}
+
+/**
+ * Calculates Bazin Price Ceiling: Preço Teto = (DY% / 100 × price) / 0.06
+ */
+function calcBazin(price, dy) {
+  if (!price || !dy || dy <= 0) return null;
+  const annualDiv = (dy / 100) * price;
+  return Number((annualDiv / 0.06).toFixed(2));
+}
+
+/**
+ * Builds 3-scenario projections for 3M / 6M / 1Y horizons.
+ *
+ * Methodology (fully transparent):
+ * 1. Graham Fair Value → target for P/L and P/VP reversion
+ * 2. Bazin Fair Value → target for income-based valuation
+ * 3. ROE-based equity growth → compounds book value over time
+ * 4. DY contribution → total return including dividends
+ * 5. Debt risk discount → higher leverage = wider bear range
+ *
+ * Scenarios:
+ * - Bull (otimista): full reversion to fair value + growth premium
+ * - Base (neutro):   partial reversion + organic growth only
+ * - Bear (pessimista): no reversion + macro/debt risk haircut
+ */
+function buildProjections(price, metrics, st) {
+  if (!price || price <= 0) return null;
+
+  const val = st?.valuation || {};
+  const rent = st?.rentabilidade || {};
+  const endiv = st?.endividamento || {};
+
+  const pl = metrics?.pl ?? val.pl;
+  const pvp = metrics?.pvp ?? val.pvp;
+  const dy = metrics?.dy ?? val.dividendYield ?? 0;
+  const roe = metrics?.roe ?? rent.roe ?? 0;
+  const divEbitda = metrics?.dividaLiquidaEbitda ?? endiv.dividaLiquidaEbitda;
+
+  // 1. Fair values
+  const graham = calcGraham(price, pl, pvp);
+  const bazin = calcBazin(price, dy);
+
+  // 2. Upside/downside to fair values
+  const grahamUpside = graham ? (graham - price) / price : 0;
+  const bazinUpside = bazin ? (bazin - price) / price : 0;
+  // Blended fair-value signal (average of available)
+  const fairTargets = [grahamUpside, bazinUpside].filter((v) => v !== 0);
+  const avgFairUpside = fairTargets.length > 0
+    ? fairTargets.reduce((a, b) => a + b, 0) / fairTargets.length
+    : 0;
+
+  // 3. Organic growth rate from ROE (equity compounds)
+  const annualGrowth = roe > 0 ? (roe / 100) * (1 - (dy > 0 ? Math.min(dy / roe, 0.8) : 0.3)) : 0;
+
+  // 4. Dividend contribution to total return
+  const annualDivReturn = dy / 100;
+
+  // 5. Risk factor from leverage
+  let debtRisk = 0;
+  if (divEbitda != null) {
+    if (divEbitda > 4) debtRisk = 0.15;
+    else if (divEbitda > 3) debtRisk = 0.10;
+    else if (divEbitda > 2.5) debtRisk = 0.05;
+  }
+  // Negative P/L means company is losing money — extra risk
+  const earningsRisk = (pl && pl < 0) ? 0.15 : 0;
+  const totalRisk = debtRisk + earningsRisk;
+
+  // 6. Build scenarios for each horizon
+  const horizons = [
+    { label: '3 meses', months: 3 },
+    { label: '6 meses', months: 6 },
+    { label: '1 ano', months: 12 },
+  ];
+
+  const scenarios = horizons.map((h) => {
+    const t = h.months / 12; // fraction of year
+
+    // Organic equity growth contribution (compounded)
+    const organicGrowth = Math.pow(1 + annualGrowth, t) - 1;
+    // Dividend income accumulated (simple, not reinvested)
+    const divIncome = annualDivReturn * t;
+    // Fair value reversion: assumes partial convergence over time
+    // 3M → 20% reversion, 6M → 45%, 1Y → 75%
+    const reversionFactor = h.months === 3 ? 0.20 : h.months === 6 ? 0.45 : 0.75;
+    const reversionReturn = avgFairUpside * reversionFactor;
+
+    // Bull: full organic + reversion + dividend + extra momentum
+    const bull = reversionReturn + organicGrowth + divIncome + (organicGrowth * 0.3);
+    // Base: half reversion + organic + dividend
+    const base = (reversionReturn * 0.5) + organicGrowth + divIncome;
+    // Bear: no positive reversion + risk discount + macro drag
+    const bear = -totalRisk * t - (Math.abs(reversionReturn) * 0.3 * (avgFairUpside < 0 ? 1 : 0)) + (divIncome * 0.5);
+
+    // Clamp to reasonable bounds (-60% to +120% per period)
+    const clamp = (v) => Math.max(-0.60, Math.min(1.20, v));
+
+    return {
+      horizon: h.label,
+      months: h.months,
+      bull: {
+        returnPct: Number((clamp(bull) * 100).toFixed(1)),
+        price: Number((price * (1 + clamp(bull))).toFixed(2)),
+      },
+      base: {
+        returnPct: Number((clamp(base) * 100).toFixed(1)),
+        price: Number((price * (1 + clamp(base))).toFixed(2)),
+      },
+      bear: {
+        returnPct: Number((clamp(bear) * 100).toFixed(1)),
+        price: Number((price * (1 + clamp(bear))).toFixed(2)),
+      },
+    };
+  });
+
+  // Build methodology transparency
+  const methods = [];
+  if (graham) methods.push(`Graham (VI = √(22,5 × LPA × VPA)) → R$ ${graham.toFixed(2)}`);
+  if (bazin) methods.push(`Bazin (Preço Teto = Div. Anual ÷ 6%) → R$ ${bazin.toFixed(2)}`);
+  if (roe > 0) methods.push(`Crescimento orgânico via ROE de ${roe}% (retendo ${((1 - (dy > 0 ? Math.min(dy / roe, 0.8) : 0.3)) * 100).toFixed(0)}% dos lucros)`);
+  if (dy > 0) methods.push(`Dividendos projetados: ${dy}% a.a.`);
+  if (totalRisk > 0) methods.push(`Desconto de risco: ${(totalRisk * 100).toFixed(0)}% a.a. (alavancagem${earningsRisk > 0 ? ' + prejuízo' : ''})`);
+
+  return {
+    currentPrice: price,
+    fairValue: {
+      graham,
+      bazin,
+      avgUpside: Number((avgFairUpside * 100).toFixed(1)),
+    },
+    scenarios,
+    methodology: methods,
+  };
+}
+
+// GET /api/intelligence/projections — Fundamental-based price projections
+router.get('/projections', async (req, res) => {
+  try {
+    // Fetch top-ranked assets
+    const rows = await db.allAsync(`
+      SELECT q.*, a.name, a.logo, a.price, a.change_pct,
+             f.pl, f.pvp, f.dy, f.roe, f.roic, f.margem_liquida,
+             f.divida_liquida_ebitda, f.crescimento_receita, f.crescimento_lucro, f.source AS fund_source
+      FROM quant_rankings q
+      LEFT JOIN assets a ON a.symbol = q.symbol
+      LEFT JOIN fundamentals f ON f.symbol = q.symbol
+      ORDER BY q.score DESC
+      LIMIT 10
+    `);
+
+    let liveMap = new Map();
+    try {
+      const liveList = await getFullStockList(150);
+      liveMap = new Map(liveList.map((s) => [s.stock.toUpperCase(), s]));
+    } catch { }
+
+    let assets = [];
+
+    if (rows && rows.length > 0) {
+      assets = rows.map((r) => {
+        const live = liveMap.get(r.symbol.toUpperCase());
+        const st = staticIndicators[r.symbol.toUpperCase()] || {};
+        const price = live?.close ?? r.price ?? st.price ?? null;
+        const metrics = {
+          pl: r.pl ?? st.valuation?.pl,
+          pvp: r.pvp ?? st.valuation?.pvp,
+          dy: r.dy ?? st.valuation?.dividendYield,
+          roe: r.roe ?? st.rentabilidade?.roe,
+          roic: r.roic ?? st.rentabilidade?.roic,
+          margemLiquida: r.margem_liquida ?? st.rentabilidade?.margemLiquida,
+          dividaLiquidaEbitda: r.divida_liquida_ebitda ?? st.endividamento?.dividaLiquidaEbitda,
+        };
+        return {
+          symbol: r.symbol,
+          name: r.name || live?.name || st.name || r.symbol,
+          logo: r.logo || live?.logo || `https://icons.brapi.dev/icons/${r.symbol}.svg`,
+          sector: r.sector || st.sector || 'B3',
+          score: r.score,
+          metrics,
+          projections: buildProjections(price, metrics, st),
+        };
+      });
+    } else {
+      // Fallback from static data
+      assets = buildFallbackRankings().slice(0, 10).map((r) => {
+        const live = liveMap.get(r.symbol.toUpperCase());
+        const st = staticIndicators[r.symbol.toUpperCase()] || {};
+        const price = live?.close ?? r.price ?? st.price ?? null;
+        const metrics = {
+          pl: st.valuation?.pl ?? null,
+          pvp: st.valuation?.pvp ?? null,
+          dy: st.valuation?.dividendYield ?? null,
+          roe: st.rentabilidade?.roe ?? null,
+          roic: st.rentabilidade?.roic ?? null,
+          margemLiquida: st.rentabilidade?.margemLiquida ?? null,
+          dividaLiquidaEbitda: st.endividamento?.dividaLiquidaEbitda ?? null,
+        };
+        return {
+          symbol: r.symbol,
+          name: r.name || st.name || r.symbol,
+          logo: r.logo || st.logo || `https://icons.brapi.dev/icons/${r.symbol}.svg`,
+          sector: r.sector || st.sector || 'B3',
+          score: r.score,
+          metrics,
+          projections: buildProjections(price, metrics, st),
+        };
+      });
+    }
+
+    res.json({
+      count: assets.length,
+      updatedAt: new Date().toISOString(),
+      methodologyOverview: [
+        'Preço Justo Graham: VI = √(22,5 × LPA × VPA) — teto conservador para empresas lucrativas.',
+        'Preço Teto Bazin: Dividendo Anual ÷ 6% — preço máximo para DY mínimo de 6%.',
+        'Crescimento orgânico: ROE × taxa de retenção de lucros, composto no período.',
+        'Dividendos: retorno acumulado de proventos projetados no horizonte.',
+        'Risco: desconto proporcional ao endividamento (Dív.Líq/EBITDA) e prejuízo operacional.',
+        'Cenário otimista: reversão plena ao valor justo + crescimento + dividendos.',
+        'Cenário base: reversão parcial + crescimento orgânico + dividendos.',
+        'Cenário pessimista: sem reversão positiva + desconto de risco + apenas parte dos dividendos.',
+      ],
+      disclaimer:
+        'Projeções estritamente educativas baseadas em modelos fundamentalistas clássicos (Graham, Bazin) e indicadores públicos. ' +
+        'O mercado é influenciado por fatores macroeconômicos, políticos e comportamentais não capturados neste modelo. ' +
+        'Rentabilidade passada não garante resultados futuros. Não constitui recomendação de investimento.',
+      assets,
+    });
+  } catch (err) {
+    console.error('Error building projections:', err.message);
+    res.status(500).json({ error: 'Falha ao calcular projeções' });
+  }
+});
+
 // GET /api/intelligence/recommendations — Daily bot history & performance tracking
 router.get('/recommendations', async (req, res) => {
   try {

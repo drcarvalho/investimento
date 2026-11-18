@@ -28,6 +28,8 @@ const Portfolio = lazy(() => import('./pages/Portfolio'));
 const Studies = lazy(() => import('./pages/Studies'));
 const Search = lazy(() => import('./pages/Search'));
 const Sobre = lazy(() => import('./pages/Sobre'));
+const Recomendacoes = lazy(() => import('./pages/Recomendacoes'));
+const Projecoes = lazy(() => import('./pages/Projecoes'));
 
 const NAV_ITEMS = [
   { path: '/', label: 'Mercado', icon: <TrendingUpIcon size={16} /> },
@@ -35,6 +37,8 @@ const NAV_ITEMS = [
   { path: '/ativos', label: 'FIIs/ETFs', icon: <BuildingIcon size={16} /> },
   { path: '/comparar', label: 'Comparar', icon: <ScaleIcon size={16} /> },
   { path: '/inteligencia', label: 'Inteligência', icon: <ShieldCheckIcon size={16} /> },
+  { path: '/recomendacoes', label: 'Recomendações', icon: <StarIcon size={16} /> },
+  { path: '/projecoes', label: 'Projeções', icon: <TrendingUpIcon size={16} /> },
 ];
 
 function getPageTitle(pathname) {
@@ -43,6 +47,8 @@ function getPageTitle(pathname) {
   if (pathname === '/ativos') return 'FIIs e ETFs';
   if (pathname === '/comparar') return 'Comparar Ativos';
   if (pathname === '/inteligencia') return 'Inteligência Quantitativa';
+  if (pathname === '/recomendacoes') return 'Recomendações de Estudo';
+  if (pathname === '/projecoes') return 'Projeções de Preço (3M/6M/1A)';
   if (pathname === '/carteira') return 'Minha Carteira';
   if (pathname === '/estudos') return 'Meus Estudos';
   if (pathname === '/buscar') return 'Buscar Ativos';
@@ -276,6 +282,8 @@ function AppShell({ theme, toggleTheme }) {
               <Route path="/acoes/:symbol" element={<StockDetail />} />
               <Route path="/comparar" element={<Compare />} />
               <Route path="/inteligencia" element={<Intelligence />} />
+              <Route path="/recomendacoes" element={<Recomendacoes />} />
+              <Route path="/projecoes" element={<Projecoes />} />
               <Route path="/carteira" element={<Portfolio />} />
               <Route path="/estudos" element={<Studies />} />
               <Route path="/buscar" element={<Search />} />
