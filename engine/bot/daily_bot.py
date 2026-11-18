@@ -28,7 +28,7 @@ def format_telegram_report(
     macro: list[dict[str, Any]],
     ai_summary: str | None = None,
 ) -> str:
-    lines = [f"📊 <b>InvestAnalytics — Relatório Diário ({_esc(run_date)})</b>", ""]
+    lines = [f"📊 <b>Investimento Flash — Relatório Diário ({_esc(run_date)})</b>", ""]
 
     if macro:
         macro_parts = [f"{_esc(m['name'])}: {_esc(m['value'])}{_esc(m['unit'])}" for m in macro]

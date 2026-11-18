@@ -43,7 +43,7 @@ function Sobre() {
         Guia de Estudos & Metodologia
       </h1>
       <p style={styles.subtitle}>
-        Referência transparente das fórmulas de valuation, critérios do motor quantitativo, fontes oficiais e principais indicadores exibidos no InvestAnalytics.
+        Referência transparente das fórmulas de valuation, critérios do motor quantitativo, fontes oficiais e principais indicadores exibidos no Investimento Flash.
       </p>
 
       <div style={styles.twoCol}>
@@ -74,7 +74,7 @@ function Sobre() {
             Saúde Fundamentalista & Score (0–100)
           </h2>
           <p style={styles.bodyText}>
-            A pontuação do InvestAnalytics é 100% determinística e auditável, ponderando os pilares fundamentais sem nunca inventar indicadores ausentes:
+            A pontuação do Investimento Flash é 100% determinística e auditável, ponderando os pilares fundamentais sem nunca inventar indicadores ausentes:
           </p>
           <ul style={styles.list}>
             <li><strong>Valuation (25 pts):</strong> P/L positivo e descontado (≤ 12 pontuação máxima) e P/VP competitivo.</li>

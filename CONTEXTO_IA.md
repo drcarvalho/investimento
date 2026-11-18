@@ -1,4 +1,4 @@
-# CONTEXTO_IA — Portal de Inteligência Financeira (InvestAnalytics)
+# CONTEXTO_IA — Portal de Inteligência Financeira (Investimento Flash)
 
 > **Como usar este documento em outra IA:** Anexe ou cole este arquivo no início da conversa e adicione ao final o que deseja construir, corrigir ou evoluir. Ele contém a arquitetura exata, regras de negócio, schema do banco, endpoints, decisões de segurança e padrões visuais já implementados.
 
@@ -7,7 +7,7 @@
 ## 0. Prompt Inicial Recomendado (copie e cole junto com este arquivo)
 
 ```text
-Você vai atuar como Arquiteto de Software e Desenvolvedor Sênior no projeto InvestAnalytics descrito no documento CONTEXTO_IA.md abaixo.
+Você vai atuar como Arquiteto de Software e Desenvolvedor Sênior no projeto Investimento Flash descrito no documento CONTEXTO_IA.md abaixo.
 
 REGRAS OBRIGATÓRIAS:
 1. NÃO comece do zero — evolua o código existente preservando todas as rotas, tabelas SQLite e funcionalidades atuais.
@@ -25,7 +25,7 @@ Minha solicitação agora é: [DESCREVA AQUI SUA TAREFA]
 
 ## 1. Visão Geral do Projeto
 
-O **InvestAnalytics** é uma plataforma web gratuita de inteligência financeira focada no mercado brasileiro (**B3**), composta por 3 camadas integradas por um banco **SQLite (modo WAL)**:
+O **Investimento Flash** é uma plataforma web gratuita de inteligência financeira focada no mercado brasileiro (**B3**), composta por 3 camadas integradas por um banco **SQLite (modo WAL)**:
 
 1. **Frontend (`frontend/`)**: SPA em **React 18 + React Router 7 + Vite 7**, com tema claro/escuro, design responsivo, busca rápida (`Ctrl+K` / `/`), gráficos SVG interativos sem dependências pesadas e acessibilidade WCAG AA.
 2. **Backend (`backend/`)**: API REST em **Node.js 20 + Express 4 + sqlite3 v6**, usando `fetch` nativo (zero dependência de `axios`/`node-fetch`), cache em memória, segurança por headers/CORS/rate limiting e telemetria estruturada.

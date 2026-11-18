@@ -1,8 +1,8 @@
 {
-  "name": "investanalytics",
+  "name": "investimento-flash",
   "version": "1.0.0",
   "private": true,
-  "description": "InvestAnalytics — Portal de Inteligência Financeira da B3 (Vercel + Supabase + Local SQLite)",
+  "description": "Investimento Flash — Portal de Inteligência Financeira da B3 (Vercel + Supabase + Local SQLite)",
   "engines": {
     "node": ">=20 <23"
   },

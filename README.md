@@ -1,4 +1,4 @@
-# InvestAnalytics — Portal de Inteligência Financeira (B3)
+# Investimento Flash — Portal de Inteligência Financeira (B3)
 
 Plataforma completa e gratuita de inteligência financeira, análise fundamentalista e acompanhamento do mercado brasileiro (**Ações, FIIs, ETFs e Macroeconomia**).
 

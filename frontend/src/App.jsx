@@ -101,7 +101,7 @@ function Navbar({ theme, toggleTheme, onOpenPalette }) {
                 <TrendingUpIcon size={17} />
               </span>
               <span>
-                Invest<span style={{ color: 'var(--positive)' }}>Analytics</span>
+                Investimento <span style={{ color: 'var(--positive)' }}>Flash</span>
               </span>
             </Link>
 
@@ -221,7 +221,7 @@ function AppShell({ theme, toggleTheme }) {
   const hasMountedRef = React.useRef(false);
 
   React.useEffect(() => {
-    document.title = `${pageTitle} | InvestAnalytics`;
+    document.title = `${pageTitle} | Investimento Flash`;
     if (!hasMountedRef.current) {
       hasMountedRef.current = true;
       return;
@@ -288,7 +288,7 @@ function AppShell({ theme, toggleTheme }) {
       <footer className="app-footer">
         <div className="footer-inner">
           <div>
-            <strong style={{ color: 'var(--text-primary)' }}>InvestAnalytics</strong>
+            <strong style={{ color: 'var(--text-primary)' }}>Investimento Flash</strong>
             <span> · Inteligência Financeira &amp; Estudos da B3</span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>

@@ -1,4 +1,4 @@
--- InvestAnalytics — PostgreSQL / Supabase Schema
+-- Investimento Flash — PostgreSQL / Supabase Schema
 -- Execute este script no Supabase SQL Editor (opcional: o backend também cria automaticamente no primeiro acesso).
 
 CREATE TABLE IF NOT EXISTS investments (

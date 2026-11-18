@@ -43,7 +43,7 @@ def safe_step(label: str, fn: Callable[[], T], default: T, warnings: list[str]) 
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="InvestAnalytics — Motor Quantitativo & Bot Diario")
+    parser = argparse.ArgumentParser(description="Investimento Flash — Motor Quantitativo & Bot Diario")
     parser.add_argument("--with-cvm", action="store_true", help="Baixar DFP anual + ITR trimestral oficial da CVM")
     parser.add_argument("--skip-cvm-fiis", action="store_true", help="Pular download do Informe Mensal de FIIs da CVM")
     parser.add_argument("--with-ai", action="store_true", help="Adicionar resumo executivo via Gemini 2.5 Flash (requer GEMINI_API_KEY)")
