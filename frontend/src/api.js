@@ -1,9 +1,7 @@
 export const API_BASE =
   import.meta.env.VITE_API_URL !== undefined
     ? import.meta.env.VITE_API_URL
-    : import.meta.env.PROD
-    ? ''
-    : 'http://localhost:4000';
+    : '';
 
 // Coalesce identical concurrent GET requests (e.g., TickerTape + Home fetching /api/market at the same time)
 const inFlightGets = new Map();
