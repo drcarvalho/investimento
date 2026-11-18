@@ -5,6 +5,37 @@ function isPostgresUrl(url) {
   return typeof url === 'string' && /^postgres(ql)?:\/\//i.test(url.trim());
 }
 
+// Supports both manual DATABASE_URL and Vercel Storage auto-injected POSTGRES_URL vars
+function resolvePostgresUrl(env = process.env) {
+  const candidates = [
+    env.DATABASE_URL,
+    env.POSTGRES_URL,
+    env.POSTGRES_PRISMA_URL,
+    env.POSTGRES_URL_NON_POOLING,
+  ];
+  for (const c of candidates) {
+    if (isPostgresUrl(c)) return c.trim();
+  }
+  return '';
+}
+
+// Strip Vercel/Supabase-specific query params (e.g. supa=base-pooler.x, pgbouncer=true, sslmode)
+// so node-postgres uses our explicit SSL config without SELF_SIGNED_CERT_IN_CHAIN errors
+function sanitizePgConnectionString(rawUrl) {
+  const isLocal = /localhost|127\.0\.0\.1/i.test(rawUrl) || /sslmode=disable/i.test(rawUrl);
+  try {
+    const parsed = new URL(rawUrl);
+    parsed.searchParams.delete('supa');
+    parsed.searchParams.delete('pgbouncer');
+    if (!isLocal) {
+      parsed.searchParams.delete('sslmode');
+    }
+    return { connectionString: parsed.toString(), isLocal };
+  } catch {
+    return { connectionString: rawUrl, isLocal };
+  }
+}
+
 // Convert SQLite-style `?` placeholders to PostgreSQL `$1, $2, ...` outside single-quoted literals
 function convertPlaceholders(sql) {
   let out = '';
@@ -163,9 +194,9 @@ const PG_SCHEMA_STATEMENTS = [
   'CREATE INDEX IF NOT EXISTS idx_quant_rankings_score ON quant_rankings(score DESC)',
 ];
 
-function createPostgresDb(connectionString) {
+function createPostgresDb(rawConnectionString) {
   const { Pool } = require('pg');
-  const isLocal = /localhost|127\.0\.0\.1/i.test(connectionString) || /sslmode=disable/i.test(connectionString);
+  const { connectionString, isLocal } = sanitizePgConnectionString(rawConnectionString);
 
   const pool = new Pool({
     connectionString,
@@ -601,8 +632,10 @@ function createSqliteDb() {
   return db;
 }
 
-const connectionUrl = (process.env.DATABASE_URL || '').trim();
-const dbInstance = isPostgresUrl(connectionUrl) ? createPostgresDb(connectionUrl) : createSqliteDb();
+const connectionUrl = resolvePostgresUrl(process.env);
+const dbInstance = connectionUrl ? createPostgresDb(connectionUrl) : createSqliteDb();
 dbInstance.convertPlaceholders = convertPlaceholders;
+dbInstance.resolvePostgresUrl = resolvePostgresUrl;
+dbInstance.sanitizePgConnectionString = sanitizePgConnectionString;
 
 module.exports = dbInstance;
