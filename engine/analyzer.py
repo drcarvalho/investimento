@@ -1,0 +1,333 @@
+"""Transparent Quantitative Financial Intelligence Engine (Python).
+
+Evaluates B3 companies across 5 transparent pillars:
+1. Valuation (25 pts): P/L, P/VP, EV/EBITDA + comparison vs. sector median
+2. Profitability (25 pts): ROE, ROIC, Margem Líquida
+3. Dividends (20 pts): Dividend Yield (relative to Selic / 6% Bazin hurdle)
+4. Financial Health / Debt (15 pts): Dívida Líquida / EBITDA
+5. Growth (15 pts): Crescimento de Receita e Lucro
+
+Also detects fundamental deterioration flags and generates deterministic,
+data-grounded explanations (NEVER invents numbers).
+"""
+
+from __future__ import annotations
+
+import json
+import sqlite3
+import statistics
+from datetime import datetime, timezone
+from typing import Any
+
+WEIGHTS = {
+    "valuation": 25.0,
+    "profitability": 25.0,
+    "dividend": 20.0,
+    "debt": 15.0,
+    "growth": 15.0,
+}
+
+
+def _safe_median(values: list[float]) -> float | None:
+    clean = [v for v in values if v is not None]
+    return round(statistics.median(clean), 2) if clean else None
+
+
+def evaluate_company(row: dict[str, Any], sector_medians: dict[str, float | None], selic: float | None = None) -> dict[str, Any]:
+    """Compute transparent multi-factor score, deterioration flags, positives, risks, and explanation."""
+    pl = row.get("pl")
+    pvp = row.get("pvp")
+    dy = row.get("dy")
+    roe = row.get("roe")
+    roic = row.get("roic")
+    ml = row.get("margem_liquida")
+    dl_ebitda = row.get("divida_liquida_ebitda")
+    rev_g = row.get("crescimento_receita")
+    ni_g = row.get("crescimento_lucro")
+
+    positives: list[str] = []
+    risks: list[str] = []
+    deterioration: list[str] = []
+
+    # 1. Valuation (max 25)
+    val_score = 0.0
+    if pl is not None:
+        if pl < 0:
+            deterioration.append(f"Prejuízo líquido (P/L negativo: {pl:.1f})")
+            risks.append("Empresa operando no prejuízo")
+        elif pl <= 8:
+            val_score += 15.0
+            positives.append(f"P/L muito descontado ({pl:.2f}x)")
+        elif pl <= 14:
+            val_score += 11.0
+            positives.append(f"P/L atrativo ({pl:.2f}x)")
+        elif pl <= 22:
+            val_score += 6.0
+        else:
+            val_score += 2.0
+            risks.append(f"Múltiplo P/L elevado ({pl:.2f}x)")
+
+    if pvp is not None:
+        if 0 < pvp <= 1.2:
+            val_score += 10.0
+            positives.append(f"Negociando próximo ou abaixo do patrimônio (P/VP {pvp:.2f}x)")
+        elif 0 < pvp <= 2.2:
+            val_score += 6.0
+        elif pvp > 4.0:
+            val_score += 2.0
+            risks.append(f"P/VP esticado ({pvp:.2f}x)")
+        else:
+            val_score += 4.0
+    elif pl is not None and pl > 0:
+        val_score = min(25.0, val_score * 1.3)
+
+    # Sector comparison note
+    med_pl = sector_medians.get("pl")
+    if pl is not None and pl > 0 and med_pl is not None and med_pl > 0:
+        if pl < med_pl * 0.85:
+            positives.append(f"P/L abaixo da mediana do setor ({med_pl:.1f}x)")
+        elif pl > med_pl * 1.35:
+            risks.append(f"P/L acima da mediana do setor ({med_pl:.1f}x)")
+
+    # 2. Profitability (max 25)
+    prof_score = 0.0
+    if roe is not None:
+        if roe >= 20:
+            prof_score += 15.0
+            positives.append(f"ROE excelente ({roe:.1f}%)")
+        elif roe >= 15:
+            prof_score += 12.0
+            positives.append(f"ROE consistente ({roe:.1f}%)")
+        elif roe >= 10:
+            prof_score += 8.0
+        elif roe > 0:
+            prof_score += 3.0
+            risks.append(f"ROE abaixo do custo de capital ({roe:.1f}%)")
+        else:
+            deterioration.append(f"ROE negativo ({roe:.1f}%)")
+            risks.append("Rentabilidade negativa sobre o patrimônio")
+
+    if ml is not None:
+        if ml >= 18:
+            prof_score += 10.0
+            positives.append(f"Margem líquida forte ({ml:.1f}%)")
+        elif ml >= 10:
+            prof_score += 7.0
+        elif ml > 0:
+            prof_score += 3.0
+        else:
+            deterioration.append(f"Margem líquida negativa ({ml:.1f}%)")
+            risks.append("Compressão severa de margens")
+
+    if roic is not None and roic >= 15 and len(positives) < 5:
+        positives.append(f"ROIC robusto ({roic:.1f}%)")
+
+    # 3. Dividends (max 20)
+    div_score = 0.0
+    if dy is not None:
+        if dy >= 8:
+            div_score = 20.0
+            positives.append(f"Forte geração de dividendos (DY {dy:.2f}%)")
+        elif dy >= 6:
+            div_score = 16.0
+            positives.append(f"Dividend Yield acima do piso Bazin de 6% ({dy:.2f}%)")
+        elif dy >= 3.5:
+            div_score = 10.0
+        elif dy > 0:
+            div_score = 5.0
+        else:
+            risks.append("Sem pagamento relevante de dividendos no período")
+        if selic is not None and dy >= selic * 0.7:
+            positives.append(f"DY competitivo frente à Selic ({selic:.2f}%)")
+
+    # 4. Financial Health / Debt (max 15)
+    debt_score = 10.0  # neutral when N/A (e.g., banks where Net Debt/EBITDA does not apply)
+    if dl_ebitda is not None:
+        if dl_ebitda < 0:
+            debt_score = 15.0
+            positives.append("Caixa líquido positivo (mais caixa do que dívida)")
+        elif dl_ebitda <= 1.5:
+            debt_score = 14.0
+            positives.append(f"Endividamento conservador (Dív. Líq./EBITDA {dl_ebitda:.2f}x)")
+        elif dl_ebitda <= 2.5:
+            debt_score = 10.0
+        elif dl_ebitda <= 3.5:
+            debt_score = 5.0
+            risks.append(f"Alavancagem moderada/alta ({dl_ebitda:.2f}x EBITDA)")
+        else:
+            debt_score = 1.0
+            deterioration.append(f"Alavancagem elevada (Dív. Líq./EBITDA {dl_ebitda:.2f}x)")
+            risks.append(f"Dívida elevada ({dl_ebitda:.2f}x EBITDA)")
+
+    # 5. Growth (max 15 — neutral 7.5 when growth series unavailable so missing data isn't fabricated)
+    growth_score = 7.5
+    if rev_g is not None or ni_g is not None:
+        growth_score = 0.0
+        if rev_g is not None:
+            if rev_g >= 10:
+                growth_score += 7.5
+                positives.append(f"Receita em expansão (+{rev_g:.1f}%)")
+            elif rev_g >= 0:
+                growth_score += 5.0
+            elif rev_g < -10:
+                deterioration.append(f"Queda relevante de receita ({rev_g:.1f}%)")
+                risks.append(f"Retração de receita ({rev_g:.1f}%)")
+            else:
+                growth_score += 2.0
+        else:
+            growth_score += 3.5
+
+        if ni_g is not None:
+            if ni_g >= 12:
+                growth_score += 7.5
+                positives.append(f"Lucro líquido crescendo (+{ni_g:.1f}%)")
+            elif ni_g >= 0:
+                growth_score += 5.0
+            elif ni_g < -15:
+                deterioration.append(f"Deterioração de lucro ({ni_g:.1f}%)")
+                risks.append(f"Queda expressiva de lucro ({ni_g:.1f}%)")
+            else:
+                growth_score += 2.0
+        else:
+            growth_score += 3.5
+
+    total_score = round(min(100.0, val_score + prof_score + div_score + debt_score + growth_score), 1)
+
+    if total_score >= 76 and not deterioration:
+        classification = "Oportunidade Forte"
+    elif total_score >= 62 and len(deterioration) <= 1:
+        classification = "Fundamentos Sólidos"
+    elif total_score >= 45:
+        classification = "Neutro / Acompanhar"
+    else:
+        classification = "Atenção / Risco Elevado"
+
+    # Build concise, strictly data-grounded explanation
+    parts = [f"Pontuação quantitativa {total_score}/100 ({classification})."]
+    if positives:
+        parts.append("Destaques: " + "; ".join(positives[:3]) + ".")
+    if deterioration:
+        parts.append("Alertas de deterioração: " + "; ".join(deterioration) + ".")
+    elif risks:
+        parts.append("Pontos de atenção: " + "; ".join(risks[:2]) + ".")
+
+    return {
+        "symbol": row["symbol"],
+        "sector": row.get("sector") or "Outros",
+        "score": total_score,
+        "classification": classification,
+        "valuation_score": round(val_score, 1),
+        "profitability_score": round(prof_score, 1),
+        "dividend_score": round(div_score, 1),
+        "debt_score": round(debt_score, 1),
+        "growth_score": round(growth_score, 1),
+        "deterioration_flags": deterioration,
+        "positives": positives[:5],
+        "risks": risks[:5],
+        "explanation": " ".join(parts),
+        "criteria": {
+            "weights": WEIGHTS,
+            "sectorMedians": sector_medians,
+            "selicRef": selic,
+        },
+    }
+
+
+def run_quantitative_analysis(conn: sqlite3.Connection) -> list[dict[str, Any]]:
+    """Run quantitative evaluation on all stocks with fundamentals and persist to quant_rankings."""
+    selic_row = conn.execute("SELECT value FROM macro_indicators WHERE key = 'selic'").fetchone()
+    selic = float(selic_row["value"]) if selic_row else None
+
+    rows = conn.execute(
+        """
+        SELECT f.*, a.name, a.sector, a.price, a.change_pct
+        FROM fundamentals f
+        LEFT JOIN assets a ON a.symbol = f.symbol
+        WHERE COALESCE(a.asset_type, 'stock') = 'stock'
+          AND COALESCE(f.source, '') NOT LIKE 'CVM FII%'
+        """
+    ).fetchall()
+    records = [dict(r) for r in rows]
+
+    # Clear stale rows that no longer match active stock universe
+    conn.execute("DELETE FROM quant_rankings")
+
+    # Compute sector medians
+    by_sector: dict[str, list[dict[str, Any]]] = {}
+    for rec in records:
+        sec = rec.get("sector") or "Outros"
+        by_sector.setdefault(sec, []).append(rec)
+
+    sector_medians_map: dict[str, dict[str, float | None]] = {}
+    for sec, items in by_sector.items():
+        sector_medians_map[sec] = {
+            "pl": _safe_median([x["pl"] for x in items if x.get("pl") is not None and x["pl"] > 0]),
+            "roe": _safe_median([x["roe"] for x in items if x.get("roe") is not None]),
+            "dy": _safe_median([x["dy"] for x in items if x.get("dy") is not None]),
+        }
+
+    evaluated = [
+        evaluate_company(rec, sector_medians_map.get(rec.get("sector") or "Outros", {}), selic)
+        for rec in records
+    ]
+
+    # Compute rank within each sector
+    by_sec_eval: dict[str, list[dict[str, Any]]] = {}
+    for ev in evaluated:
+        by_sec_eval.setdefault(ev["sector"], []).append(ev)
+    for sec_list in by_sec_eval.values():
+        sec_list.sort(key=lambda x: x["score"], reverse=True)
+        for idx, ev in enumerate(sec_list, start=1):
+            ev["sector_rank"] = idx
+
+    evaluated.sort(key=lambda x: x["score"], reverse=True)
+    now = datetime.now(timezone.utc).isoformat()
+
+    for ev in evaluated:
+        conn.execute(
+            """
+            INSERT INTO quant_rankings (
+                symbol, score, classification, sector, sector_rank,
+                valuation_score, profitability_score, dividend_score, debt_score, growth_score,
+                deterioration_flags, positives, risks, explanation, criteria_json, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(symbol) DO UPDATE SET
+                score = excluded.score,
+                classification = excluded.classification,
+                sector = excluded.sector,
+                sector_rank = excluded.sector_rank,
+                valuation_score = excluded.valuation_score,
+                profitability_score = excluded.profitability_score,
+                dividend_score = excluded.dividend_score,
+                debt_score = excluded.debt_score,
+                growth_score = excluded.growth_score,
+                deterioration_flags = excluded.deterioration_flags,
+                positives = excluded.positives,
+                risks = excluded.risks,
+                explanation = excluded.explanation,
+                criteria_json = excluded.criteria_json,
+                updated_at = excluded.updated_at
+            """,
+            (
+                ev["symbol"],
+                ev["score"],
+                ev["classification"],
+                ev["sector"],
+                ev.get("sector_rank", 1),
+                ev["valuation_score"],
+                ev["profitability_score"],
+                ev["dividend_score"],
+                ev["debt_score"],
+                ev["growth_score"],
+                json.dumps(ev["deterioration_flags"], ensure_ascii=False),
+                json.dumps(ev["positives"], ensure_ascii=False),
+                json.dumps(ev["risks"], ensure_ascii=False),
+                ev["explanation"],
+                json.dumps(ev["criteria"], ensure_ascii=False),
+                now,
+            ),
+        )
+
+    conn.commit()
+    return evaluated
+

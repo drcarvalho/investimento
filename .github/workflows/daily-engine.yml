@@ -1,0 +1,58 @@
+name: Daily Quant Engine (Supabase Sync)
+
+permissions:
+  contents: read
+
+on:
+  schedule:
+    # Segunda a Sexta às 21:30 UTC (18:30 BRT — após fechamento do pregão B3)
+    - cron: '30 21 * * 1-5'
+  workflow_dispatch:
+    inputs:
+      with_cvm:
+        description: 'Baixar também DFP anual + ITR trimestral da CVM'
+        type: boolean
+        default: false
+      send_telegram:
+        description: 'Enviar relatório diário para o Telegram'
+        type: boolean
+        default: false
+      with_ai:
+        description: 'Gerar resumo executivo com Gemini 2.5 Flash'
+        type: boolean
+        default: false
+
+jobs:
+  sync-supabase:
+    name: Sync BCB + B3 + CVM -> Supabase
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install Supabase PostgreSQL driver
+        run: pip install -r engine/requirements-supabase.txt
+
+      - name: Run Quantitative Engine & Sync to Supabase
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          BRAPI_TOKEN: ${{ secrets.BRAPI_TOKEN }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          INPUT_WITH_CVM: ${{ inputs.with_cvm }}
+          INPUT_SEND_TELEGRAM: ${{ inputs.send_telegram }}
+          INPUT_WITH_AI: ${{ inputs.with_ai }}
+        run: |
+          if [ -z "$DATABASE_URL" ]; then
+            echo "Erro: configure o secret DATABASE_URL no repositório GitHub (Settings -> Secrets -> Actions)."
+            exit 1
+          fi
+          FLAGS=""
+          if [ "$INPUT_WITH_CVM" = "true" ]; then FLAGS="$FLAGS --with-cvm"; fi
+          if [ "$INPUT_SEND_TELEGRAM" = "true" ]; then FLAGS="$FLAGS --send-telegram"; fi
+          if [ "$INPUT_WITH_AI" = "true" ]; then FLAGS="$FLAGS --with-ai"; fi
+          python3 engine/run_daily.py $FLAGS

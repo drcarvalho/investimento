@@ -1,0 +1,29 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+frontend/dist/
+.vercel/
+
+# Environment & secrets
+.env
+backend/.env
+frontend/.env
+*.local
+
+# Python bytecode
+__pycache__/
+*.py[cod]
+
+# SQLite local databases
+*.db
+*.db-wal
+*.db-shm
+backend/data.db*
+
+# Logs & OS artifacts
+*.log
+npm-debug.log*
+.DS_Store
+Thumbs.db
+

@@ -1,0 +1,21 @@
+# Keep root Docker build context (engine service) lean and secret-free
+.git
+.github
+.agents
+.aws
+.codex
+node_modules
+**/node_modules
+frontend/dist
+**/__pycache__
+**/*.pyc
+**/.env
+**/.env.*
+!**/.env.example
+**/*.db
+**/*.db-wal
+**/*.db-shm
+*.log
+CONTEXTO_IA.md
+audit_instructions.md
+

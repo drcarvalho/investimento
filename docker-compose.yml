@@ -1,0 +1,77 @@
+services:
+  backend:
+    build:
+      context: ./backend
+    ports:
+      - "127.0.0.1:4000:4000"
+    environment:
+      - NODE_ENV=production
+      - PORT=4000
+      - DB_PATH=/app/data/data.db
+      - ALLOWED_ORIGINS=http://localhost:3000,http://127.0.0.1:3000
+      - BRAPI_TOKEN=${BRAPI_TOKEN:-}
+      - BOLSAI_API_KEY=${BOLSAI_API_KEY:-}
+      - ADMIN_API_KEY=${ADMIN_API_KEY:-}
+      - WRITE_API_KEY=${WRITE_API_KEY:-}
+      - READ_ONLY_MODE=${READ_ONLY_MODE:-false}
+      - METRICS_TOKEN=${METRICS_TOKEN:-}
+    volumes:
+      - sqlite_data:/app/data
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 128
+    mem_limit: 512m
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:4000/api/health').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        VITE_API_URL: ""
+    ports:
+      - "3000:8080"
+    depends_on:
+      backend:
+        condition: service_healthy
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 128
+    mem_limit: 256m
+    restart: unless-stopped
+
+  engine:
+    build:
+      context: .
+      dockerfile: engine/Dockerfile
+    environment:
+      - DB_PATH=/app/data/data.db
+      - BRAPI_TOKEN=${BRAPI_TOKEN:-}
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN:-}
+      - TELEGRAM_CHAT_ID=${TELEGRAM_CHAT_ID:-}
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+      - BOT_FLAGS=${BOT_FLAGS:-}
+    volumes:
+      - sqlite_data:/app/data
+    depends_on:
+      backend:
+        condition: service_healthy
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 128
+    mem_limit: 512m
+    restart: unless-stopped
+
+volumes:
+  sqlite_data:

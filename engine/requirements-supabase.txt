@@ -1,0 +1,4 @@
+# Optional dependency used only when connecting the Python engine to PostgreSQL / Supabase (DATABASE_URL).
+# Local SQLite mode remains 100% Python stdlib with zero external packages.
+psycopg[binary]>=3.2,<4
+
