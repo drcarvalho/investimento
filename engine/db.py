@@ -11,6 +11,7 @@ import os
 import sqlite3
 from pathlib import Path
 from typing import Any, Sequence
+from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 
 ROOT_DIR = Path(__file__).resolve().parent.parent
 DEFAULT_DB_PATH = ROOT_DIR / "backend" / "data.db"
@@ -34,6 +35,30 @@ def load_env(env_path: Path | None = None) -> None:
 
 def is_postgres_url(url: str | None) -> bool:
     return bool(url and url.strip().lower().startswith(("postgres://", "postgresql://")))
+
+
+def resolve_postgres_url(env: dict[str, str] | None = None) -> str:
+    """Support DATABASE_URL as well as Vercel Storage auto-injected POSTGRES_URL vars."""
+    source = env if env is not None else os.environ
+    for key in ("DATABASE_URL", "POSTGRES_URL", "POSTGRES_PRISMA_URL", "POSTGRES_URL_NON_POOLING"):
+        val = (source.get(key) or "").strip()
+        if is_postgres_url(val):
+            return val
+    return ""
+
+
+def sanitize_pg_url(raw_url: str) -> str:
+    """Strip non-libpq query parameters (e.g. supa=base-pooler.x, pgbouncer=true) from Vercel/Supabase URLs."""
+    parts = urlsplit(raw_url.strip())
+    is_local = (parts.hostname or "").lower() in ("localhost", "127.0.0.1")
+    params = [
+        (k, v)
+        for k, v in parse_qsl(parts.query, keep_blank_values=True)
+        if k.lower() not in ("supa", "pgbouncer")
+    ]
+    if not is_local and not any(k.lower() == "sslmode" for k, _ in params):
+        params.append(("sslmode", "require"))
+    return urlunsplit((parts.scheme, parts.netloc, parts.path, urlencode(params), parts.fragment))
 
 
 def convert_placeholders_to_pg(sql: str) -> str:
@@ -196,15 +221,12 @@ def get_db_path() -> Path:
 
 
 def get_connection(db_path: Path | None = None) -> Any:
-    database_url = os.environ.get("DATABASE_URL", "").strip()
-    if db_path is None and is_postgres_url(database_url):
+    database_url = resolve_postgres_url()
+    if db_path is None and database_url:
         import psycopg
         from psycopg.rows import dict_row
 
-        is_local = "localhost" in database_url or "127.0.0.1" in database_url or "sslmode=" in database_url
-        conn_url = database_url if is_local else (
-            f"{database_url}{'&' if '?' in database_url else '?'}sslmode=require"
-        )
+        conn_url = sanitize_pg_url(database_url)
         raw_conn = psycopg.connect(conn_url, row_factory=dict_row, prepare_threshold=None)
         adapter = PgConnectionAdapter(raw_conn)
         ensure_pg_schema(adapter)
