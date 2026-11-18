@@ -39,6 +39,7 @@ jobs:
       - name: Run Quantitative Engine & Sync to Supabase
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          POSTGRES_URL: ${{ secrets.POSTGRES_URL }}
           BRAPI_TOKEN: ${{ secrets.BRAPI_TOKEN }}
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
@@ -47,8 +48,8 @@ jobs:
           INPUT_SEND_TELEGRAM: ${{ inputs.send_telegram }}
           INPUT_WITH_AI: ${{ inputs.with_ai }}
         run: |
-          if [ -z "$DATABASE_URL" ]; then
-            echo "Erro: configure o secret DATABASE_URL no repositório GitHub (Settings -> Secrets -> Actions)."
+          if [ -z "$DATABASE_URL" ] && [ -z "$POSTGRES_URL" ]; then
+            echo "Erro: configure o secret DATABASE_URL ou POSTGRES_URL no repositório GitHub (Settings -> Secrets -> Actions)."
             exit 1
           fi
           FLAGS=""
