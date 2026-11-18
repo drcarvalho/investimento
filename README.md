@@ -3,7 +3,6 @@
 Plataforma completa e gratuita de inteligência financeira, análise fundamentalista e acompanhamento do mercado brasileiro (**Ações, FIIs, ETFs e Macroeconomia**).
 
 ## Recursos Principais
-
 - **Dashboard de Mercado (`/`)**: Painel macro oficial do **Banco Central (Selic, IPCA 12m, IPCA mensal, Dólar PTAX)**, termômetro da B3, **Mapa de Calor B3**, cotações em destaque com posição intradiária real e rankings clicáveis.
 - **Screening de Ações (`/acoes`)**: Filtros fundamentalistas (P/L, P/VP, DY, ROE, setor, viabilidade), modo compacto/confortável, filtros salvos e exportação CSV segura.
 - **FIIs & ETFs (`/ativos`)**: Listagem em tempo real de Fundos Imobiliários e ETFs da B3 com busca e ordenação (sem inventar indicadores indisponíveis — exibidos como `—`).
