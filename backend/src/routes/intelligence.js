@@ -122,46 +122,6 @@ router.get('/rankings', async (req, res) => {
       liveMap = new Map(liveList.map((s) => [s.stock.toUpperCase(), s]));
     } catch { }
 
-    const rankings = rows.map((r) => {
-      const live = liveMap.get(r.symbol.toUpperCase());
-      const st = staticIndicators[r.symbol.toUpperCase()] || {};
-      return {
-        symbol: r.symbol,
-        name: r.name || live?.name || st.name || r.symbol,
-        logo: r.logo || live?.logo || `https://icons.brapi.dev/icons/${r.symbol}.svg`,
-        sector: r.sector || st.sector || 'B3',
-        sectorRank: r.sector_rank,
-        price: live?.close ?? r.price ?? st.price ?? null,
-        change: live?.change ?? r.change_pct ?? st.change ?? null,
-        score: r.score,
-        classification: r.classification,
-        breakdown: {
-          valuation: r.valuation_score,
-          profitability: r.profitability_score,
-          dividend: r.dividend_score,
-          debt: r.debt_score,
-          growth: r.growth_score,
-        },
-        metrics: {
-          pl: r.pl,
-          pvp: r.pvp,
-          dy: r.dy,
-          roe: r.roe,
-          roic: r.roic,
-          margemLiquida: r.margem_liquida,
-          dividaLiquidaEbitda: r.divida_liquida_ebitda,
-          crescimentoReceita: r.crescimento_receita,
-          crescimentoLucro: r.crescimento_lucro,
-        },
-        deteriorationFlags: parseJson(r.deterioration_flags, []),
-        positives: parseJson(r.positives, []),
-        risks: parseJson(r.risks, []),
-        explanation: r.explanation,
-        criteria: parseJson(r.criteria_json, {}),
-        source: r.fund_source || 'engine-python',
-        updatedAt: r.updated_at,
-      };
-    });
     let rankings = [];
 
     if (rows && rows.length > 0) {
