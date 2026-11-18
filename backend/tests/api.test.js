@@ -412,3 +412,16 @@ test('convertPlaceholders converts SQLite ? to PostgreSQL $n safely outside stri
   );
 });
 
+test('resolvePostgresUrl and sanitizePgConnectionString support Vercel Storage POSTGRES_URL', () => {
+  const db = require('../src/models/db');
+  const url = db.resolvePostgresUrl({
+    POSTGRES_URL: 'postgres://user:pass@aws-0-sa-east-1.pooler.supabase.com:6543/postgres?sslmode=require&supa=base-pooler.x',
+  });
+  assert.ok(url.startsWith('postgres://'));
+
+  const sanitized = db.sanitizePgConnectionString(url);
+  assert.equal(sanitized.isLocal, false);
+  assert.ok(!sanitized.connectionString.includes('supa='));
+  assert.ok(!sanitized.connectionString.includes('sslmode='));
+});
+
