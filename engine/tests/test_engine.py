@@ -164,13 +164,18 @@ class EngineTests(unittest.TestCase):
         self.assertIn("CVM FIIs", warnings[0])
 
     def test_convert_placeholders_to_pg_preserves_quoted_literals(self):
-        from engine.db import convert_placeholders_to_pg
+        from engine.db import convert_placeholders_to_pg, resolve_postgres_url, sanitize_pg_url
 
         sql = "SELECT * FROM assets WHERE symbol = ? AND name != 'why?' AND sector LIKE ?"
         self.assertEqual(
             convert_placeholders_to_pg(sql),
             "SELECT * FROM assets WHERE symbol = %s AND name != 'why?' AND sector LIKE %s",
         )
+        vercel_url = "postgres://u:p@aws-0-sa-east-1.pooler.supabase.com:6543/postgres?sslmode=require&supa=base-pooler.x"
+        self.assertEqual(resolve_postgres_url({"POSTGRES_URL": vercel_url}), vercel_url)
+        clean = sanitize_pg_url(vercel_url)
+        self.assertNotIn("supa=", clean)
+        self.assertIn("sslmode=require", clean)
 
 
 if __name__ == "__main__":
