@@ -55,7 +55,11 @@ async function performFetch(url, options) {
     });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) {
-      throw new Error(data.error || `Erro HTTP ${res.status}`);
+      const msg =
+        typeof data.error === 'string'
+          ? data.error
+          : (data.error?.message || data.message || `Erro HTTP ${res.status}`);
+      throw new Error(msg);
     }
     return data;
   } catch (err) {

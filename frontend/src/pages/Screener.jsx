@@ -260,7 +260,7 @@ function Screener() {
 
       {error && (
         <div className="error-banner" role="alert">
-          <span>Erro ao carregar screening: {error}</span>
+          <span>Erro ao carregar screening: {typeof error === 'object' ? (error?.message || JSON.stringify(error)) : String(error)}</span>
           <button className="btn btn-primary" onClick={loadScreener}>
             <RefreshIcon size={14} /> Tentar novamente
           </button>

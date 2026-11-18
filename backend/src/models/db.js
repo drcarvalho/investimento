@@ -340,14 +340,43 @@ function createPostgresDb(rawConnectionString) {
   return adapter;
 }
 
+function createNoopDb(reason = 'Nenhum banco configurado') {
+  if (process.env.NODE_ENV !== 'test') {
+    console.warn(`[db] Operating in degraded fallback mode: ${reason}`);
+  }
+  return {
+    dialect: 'noop',
+    allAsync: async () => [],
+    getAsync: async () => null,
+    runAsync: async () => ({ lastID: null, changes: 0 }),
+    upsertPriceHistory: async () => {},
+    upsertDividends: async () => {},
+    checkHealth: async () => false,
+    closeGracefully: async () => {},
+  };
+}
+
 function createSqliteDb() {
-  const sqlite3 = require('sqlite3').verbose();
+  if (process.env.VERCEL) {
+    return createNoopDb('Vercel serverless requires POSTGRES_URL or DATABASE_URL (configure via Vercel Storage)');
+  }
+
+  let sqlite3;
+  try {
+    sqlite3 = require('sqlite3').verbose();
+  } catch (err) {
+    return createNoopDb(`sqlite3 module could not be loaded: ${err.message}`);
+  }
 
   const dbPath = process.env.DB_PATH
     ? path.resolve(process.env.DB_PATH)
     : path.resolve(__dirname, '../../data.db');
 
-  fs.mkdirSync(path.dirname(dbPath), { recursive: true });
+  try {
+    fs.mkdirSync(path.dirname(dbPath), { recursive: true });
+  } catch (err) {
+    return createNoopDb(`Failed to create database directory: ${err.message}`);
+  }
 
   const db = new sqlite3.Database(dbPath, (err) => {
     if (err) {

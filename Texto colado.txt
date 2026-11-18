@@ -1,0 +1,1 @@
+This project is already connected to the target store in one of the chosen environments
