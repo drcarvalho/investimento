@@ -28,38 +28,113 @@ function buildFallbackRankings() {
     const rent = item.rentabilidade || {};
     const endiv = item.endividamento || {};
 
-    let score = 50;
+    let valScore = 0;
+    let profScore = 0;
+    let divScore = 0;
+    let debtScore = 10;
+    const growthScore = 7.5;
+
     const positives = [];
     const risks = [];
+    const deteriorationFlags = [];
 
-    if (val.pl && val.pl > 0 && val.pl < 12) {
-      score += 15;
-      positives.push(`P/L atrativo de ${val.pl}x`);
-    } else if (val.pl && val.pl > 25) {
-      score -= 10;
-      risks.push(`Múltiplo P/L elevado (${val.pl}x)`);
+    if (typeof val.pl === 'number') {
+      if (val.pl < 0) {
+        deteriorationFlags.push(`Prejuízo líquido (P/L ${val.pl}x)`);
+        risks.push('Empresa operando no prejuízo');
+      } else if (val.pl > 0 && val.pl <= 8) {
+        valScore += 15;
+        positives.push(`P/L muito descontado (${val.pl}x)`);
+      } else if (val.pl > 0 && val.pl <= 14) {
+        valScore += 11;
+        positives.push(`P/L atrativo (${val.pl}x)`);
+      } else if (val.pl > 22) {
+        valScore += 2;
+        risks.push(`Múltiplo P/L elevado (${val.pl}x)`);
+      } else if (val.pl > 0) {
+        valScore += 6;
+      }
     }
 
-    if (val.dividendYield && val.dividendYield >= 6) {
-      score += 15;
-      positives.push(`Dividend Yield robusto (${val.dividendYield}% a.a.)`);
+    if (typeof val.pvp === 'number') {
+      if (val.pvp <= 0) {
+        deteriorationFlags.push(`P/VP inválido (${val.pvp}x)`);
+      } else if (val.pvp <= 1.2) {
+        valScore += 10;
+      } else if (val.pvp <= 2.2) {
+        valScore += 6;
+      } else if (val.pvp <= 4.0) {
+        valScore += 4;
+      } else {
+        valScore += 2;
+        risks.push(`P/VP esticado (${val.pvp}x)`);
+      }
     }
 
-    if (rent.roe && rent.roe >= 15) {
-      score += 15;
-      positives.push(`Rentabilidade sobre patrimônio elevada (ROE ${rent.roe}%)`);
+    if (typeof rent.roe === 'number') {
+      if (rent.roe >= 20) {
+        profScore += 15;
+        positives.push(`ROE excelente (${rent.roe}%)`);
+      } else if (rent.roe >= 15) {
+        profScore += 12;
+        positives.push(`ROE consistente (${rent.roe}%)`);
+      } else if (rent.roe >= 10) {
+        profScore += 8;
+      } else if (rent.roe > 0) {
+        profScore += 3;
+      } else {
+        deteriorationFlags.push(`ROE negativo (${rent.roe}%)`);
+      }
     }
 
-    if (endiv.dividaLiquidaEbitda && endiv.dividaLiquidaEbitda <= 2.0) {
-      score += 10;
-      positives.push(`Alavancagem controlada (Dív.Líq/EBITDA ${endiv.dividaLiquidaEbitda}x)`);
-    } else if (endiv.dividaLiquidaEbitda && endiv.dividaLiquidaEbitda > 3.5) {
-      score -= 15;
-      risks.push(`Endividamento elevado (${endiv.dividaLiquidaEbitda}x EBITDA)`);
+    if (typeof rent.margemLiquida === 'number') {
+      if (rent.margemLiquida >= 18) profScore += 10;
+      else if (rent.margemLiquida >= 10) profScore += 7;
+      else if (rent.margemLiquida > 0) profScore += 3;
+      else deteriorationFlags.push(`Margem líquida negativa (${rent.margemLiquida}%)`);
     }
 
-    score = Math.min(98, Math.max(25, score));
-    const classification = score >= 75 ? 'Oportunidade' : score >= 55 ? 'Equilibrada' : 'Atenção';
+    if (typeof val.dividendYield === 'number') {
+      if (val.dividendYield >= 8) {
+        divScore = 20;
+        positives.push(`Dividend Yield robusto (${val.dividendYield}% a.a.)`);
+      } else if (val.dividendYield >= 6) {
+        divScore = 16;
+        positives.push(`DY acima de 6% (${val.dividendYield}% a.a.)`);
+      } else if (val.dividendYield >= 3.5) {
+        divScore = 10;
+      } else if (val.dividendYield > 0) {
+        divScore = 5;
+      }
+    }
+
+    if (typeof endiv.dividaLiquidaEbitda === 'number') {
+      if (endiv.dividaLiquidaEbitda <= 1.5 && endiv.dividaLiquidaEbitda >= 0) {
+        debtScore = 14;
+        positives.push(`Alavancagem controlada (Dív.Líq/EBITDA ${endiv.dividaLiquidaEbitda}x)`);
+      } else if (endiv.dividaLiquidaEbitda < 0 && (rent.margemLiquida == null || rent.margemLiquida > 0)) {
+        debtScore = 15;
+        positives.push('Caixa líquido positivo');
+      } else if (endiv.dividaLiquidaEbitda <= 2.5) {
+        debtScore = 10;
+      } else if (endiv.dividaLiquidaEbitda <= 3.5) {
+        debtScore = 5;
+        risks.push(`Alavancagem moderada/alta (${endiv.dividaLiquidaEbitda}x EBITDA)`);
+      } else {
+        debtScore = 1;
+        deteriorationFlags.push(`Endividamento elevado (${endiv.dividaLiquidaEbitda}x EBITDA)`);
+      }
+    }
+
+    const score = Number(Math.min(100, valScore + profScore + divScore + debtScore + growthScore).toFixed(1));
+    const classification =
+      score >= 76 && deteriorationFlags.length === 0
+        ? 'Oportunidade Forte'
+        : score >= 62 && deteriorationFlags.length <= 1
+          ? 'Fundamentos Sólidos'
+          : score >= 45
+            ? 'Neutro / Acompanhar'
+            : 'Atenção / Risco Elevado';
 
     return {
       symbol: sym,
@@ -67,16 +142,16 @@ function buildFallbackRankings() {
       logo: item.logo || `https://icons.brapi.dev/icons/${sym}.svg`,
       sector: item.sector || 'B3',
       sectorRank: 1,
-      price: item.price || null,
-      change: item.change || 0,
+      price: item.price ?? null,
+      change: item.change ?? 0,
       score,
       classification,
       breakdown: {
-        valuation: Math.round(score * 0.9),
-        profitability: Math.round(score * 0.95),
-        dividend: Math.round(score * 0.85),
-        debt: Math.round(score * 0.9),
-        growth: Math.round(score * 0.8),
+        valuation: valScore,
+        profitability: profScore,
+        dividend: divScore,
+        debt: debtScore,
+        growth: growthScore,
       },
       metrics: {
         pl: val.pl ?? null,
@@ -89,15 +164,27 @@ function buildFallbackRankings() {
         crescimentoReceita: null,
         crescimentoLucro: null,
       },
-      deteriorationFlags: risks.length > 1 ? risks : [],
+      deteriorationFlags,
       positives,
       risks,
-      explanation: `Análise fundamentalista de referência baseada em balanços históricos CVM e múltiplos de mercado.`,
+      explanation: `Pontuação de referência ${score}/100 (${classification}) baseada em múltiplos estáticos.`,
       criteria: { pl: val.pl, pvp: val.pvp, roe: rent.roe, dy: val.dividendYield },
       source: 'baseline-fundamental',
       updatedAt: new Date().toISOString(),
     };
   });
+
+  const bySector = new Map();
+  for (const item of list) {
+    if (!bySector.has(item.sector)) bySector.set(item.sector, []);
+    bySector.get(item.sector).push(item);
+  }
+  for (const items of bySector.values()) {
+    items.sort((a, b) => b.score - a.score);
+    items.forEach((item, idx) => {
+      item.sectorRank = idx + 1;
+    });
+  }
 
   list.sort((a, b) => b.score - a.score);
   return list;

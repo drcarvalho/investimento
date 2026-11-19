@@ -138,12 +138,12 @@ async function enrichPositions(rows) {
     };
   });
 
-  const denomForSector = totalValue > 0 ? totalValue : totalCost || 1;
+  const totalSectorBasis = [...sectorTotals.values()].reduce((acc, v) => acc + v, 0) || 1;
   const bySector = [...sectorTotals.entries()]
     .map(([sector, value]) => ({
       sector,
       value: Number(value.toFixed(2)),
-      pct: Number(((value / denomForSector) * 100).toFixed(1)),
+      pct: Number(((value / totalSectorBasis) * 100).toFixed(1)),
     }))
     .sort((a, b) => b.value - a.value);
 

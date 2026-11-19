@@ -178,6 +178,24 @@ class EngineTests(unittest.TestCase):
         self.assertIn("sslmode=require", clean)
 
 
+
+    def test_evaluate_company_edge_cases(self):
+        # Negative P/VP and zero P/L should not award valuation points
+        neg_pvp = evaluate_company(
+            {"symbol": "NEG3", "sector": "Varejo", "pl": 0.0, "pvp": -1.5, "divida_liquida": 500_000_000, "divida_liquida_ebitda": -2.0},
+            {"pl": 10.0},
+        )
+        self.assertEqual(neg_pvp["valuation_score"], 0.0)
+        self.assertEqual(neg_pvp["debt_score"], 1.0)
+        self.assertTrue(any("Patrimônio líquido negativo" in f for f in neg_pvp["deterioration_flags"]))
+        self.assertTrue(any("EBITDA negativo" in f for f in neg_pvp["deterioration_flags"]))
+
+        # Empty metrics should return 0.0 and Dados Insuficientes
+        empty = evaluate_company({"symbol": "EMPTY3", "sector": "Outros"}, {})
+        self.assertEqual(empty["score"], 0.0)
+        self.assertEqual(empty["classification"], "Dados Insuficientes")
+
+
 if __name__ == "__main__":
     unittest.main()
 

@@ -31,14 +31,27 @@ const Sobre = lazy(() => import('./pages/Sobre'));
 const Recomendacoes = lazy(() => import('./pages/Recomendacoes'));
 const Projecoes = lazy(() => import('./pages/Projecoes'));
 
-const NAV_ITEMS = [
+const PRIMARY_NAV_ITEMS = [
   { path: '/', label: 'Mercado', icon: <TrendingUpIcon size={16} /> },
   { path: '/acoes', label: 'Ações', icon: <FilterIcon size={16} /> },
   { path: '/ativos', label: 'FIIs/ETFs', icon: <BuildingIcon size={16} /> },
-  { path: '/comparar', label: 'Comparar', icon: <ScaleIcon size={16} /> },
   { path: '/inteligencia', label: 'Inteligência', icon: <ShieldCheckIcon size={16} /> },
-  { path: '/recomendacoes', label: 'Recomendações', icon: <StarIcon size={16} /> },
-  { path: '/projecoes', label: 'Projeções', icon: <TrendingUpIcon size={16} /> },
+  { path: '/carteira', label: 'Carteira', icon: <WalletIcon size={16} /> },
+  { path: '/comparar', label: 'Comparar', icon: <ScaleIcon size={16} /> },
+];
+
+const MORE_NAV_ITEMS = [
+  { path: '/recomendacoes', label: 'Recomendações', desc: 'Destaques e histórico do bot' },
+  { path: '/projecoes', label: 'Projeções', desc: 'Cenários de preço 3M / 6M / 1A' },
+  { path: '/estudos', label: 'Meus Estudos', desc: 'Teses salvas e listas' },
+  { path: '/sobre', label: 'Guia & Metodologia', desc: 'Critérios e fontes oficiais' },
+];
+
+const MOBILE_NAV_ITEMS = [
+  { path: '/', label: 'Mercado', icon: <TrendingUpIcon size={17} /> },
+  { path: '/acoes', label: 'Ações', icon: <FilterIcon size={17} /> },
+  { path: '/inteligencia', label: 'Quant', icon: <ShieldCheckIcon size={17} /> },
+  { path: '/carteira', label: 'Carteira', icon: <WalletIcon size={17} /> },
 ];
 
 function getPageTitle(pathname) {
@@ -85,10 +98,40 @@ function NotFoundPage() {
 
 function RouteFallback() {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-      <div className="skeleton" style={{ height: 52, width: '100%' }} />
-      <div className="skeleton" style={{ height: 220, width: '100%' }} />
+    <div className="route-skeleton" aria-busy="true" aria-label="Carregando página">
+      <div className="skeleton" style={{ height: 40, width: '42%', maxWidth: 320, borderRadius: 10 }} />
+      <div className="route-skeleton-grid">
+        <div className="skeleton" style={{ height: 104, borderRadius: 12 }} />
+        <div className="skeleton" style={{ height: 104, borderRadius: 12 }} />
+        <div className="skeleton" style={{ height: 104, borderRadius: 12 }} />
+      </div>
+      <div className="skeleton" style={{ height: 260, width: '100%', borderRadius: 14 }} />
     </div>
+  );
+}
+
+function ScrollToTopButton() {
+  const [visible, setVisible] = React.useState(false);
+
+  React.useEffect(() => {
+    const onScroll = () => setVisible(window.scrollY > 420);
+    window.addEventListener('scroll', onScroll, { passive: true });
+    onScroll();
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+
+  if (!visible) return null;
+
+  return (
+    <button
+      type="button"
+      className="scroll-top-btn"
+      onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+      aria-label="Voltar ao topo"
+      title="Voltar ao topo"
+    >
+      ↑
+    </button>
   );
 }
 
@@ -96,12 +139,36 @@ function Navbar({ theme, toggleTheme, onOpenPalette }) {
   const navigate = useNavigate();
   const location = useLocation();
   const { watchlist } = useWatchlist();
+  const [moreOpen, setMoreOpen] = React.useState(false);
+  const moreRef = React.useRef(null);
+
+  const isMoreActive = MORE_NAV_ITEMS.some((item) => location.pathname.startsWith(item.path));
+
+  React.useEffect(() => {
+    setMoreOpen(false);
+  }, [location.pathname]);
+
+  React.useEffect(() => {
+    if (!moreOpen) return undefined;
+    const onPointerDown = (e) => {
+      if (moreRef.current && !moreRef.current.contains(e.target)) setMoreOpen(false);
+    };
+    const onKeyDown = (e) => {
+      if (e.key === 'Escape') setMoreOpen(false);
+    };
+    document.addEventListener('mousedown', onPointerDown);
+    document.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', onPointerDown);
+      document.removeEventListener('keydown', onKeyDown);
+    };
+  }, [moreOpen]);
 
   return (
     <>
       <header className="navbar">
         <div className="navbar-inner">
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem', minWidth: 0 }}>
             <Link to="/" className="nav-brand">
               <span className="nav-brand-badge">
                 <TrendingUpIcon size={17} />
@@ -112,7 +179,7 @@ function Navbar({ theme, toggleTheme, onOpenPalette }) {
             </Link>
 
             <nav className="nav-links desktop-nav-links" aria-label="Navegação principal">
-              {NAV_ITEMS.map((item) => {
+              {PRIMARY_NAV_ITEMS.map((item) => {
                 const active =
                   item.path === '/'
                     ? location.pathname === '/'
@@ -128,27 +195,38 @@ function Navbar({ theme, toggleTheme, onOpenPalette }) {
                   </Link>
                 );
               })}
-              <Link
-                to="/carteira"
-                className={`nav-link ${location.pathname.startsWith('/carteira') ? 'active' : ''}`}
-                aria-current={location.pathname.startsWith('/carteira') ? 'page' : undefined}
-              >
-                <span>Carteira</span>
-              </Link>
-              <Link
-                to="/estudos"
-                className={`nav-link ${location.pathname.startsWith('/estudos') ? 'active' : ''}`}
-                aria-current={location.pathname.startsWith('/estudos') ? 'page' : undefined}
-              >
-                <span>Estudos</span>
-              </Link>
-              <Link
-                to="/sobre"
-                className={`nav-link ${location.pathname.startsWith('/sobre') ? 'active' : ''}`}
-                aria-current={location.pathname.startsWith('/sobre') ? 'page' : undefined}
-              >
-                <span>Guia</span>
-              </Link>
+
+              <div className="nav-more-wrap" ref={moreRef}>
+                <button
+                  type="button"
+                  className={`nav-link nav-more-btn ${isMoreActive || moreOpen ? 'active' : ''}`}
+                  onClick={() => setMoreOpen((v) => !v)}
+                  aria-expanded={moreOpen}
+                  aria-haspopup="menu"
+                >
+                  <span>Mais</span>
+                  <span className={`nav-caret ${moreOpen ? 'open' : ''}`} aria-hidden="true">▾</span>
+                </button>
+                {moreOpen && (
+                  <div className="nav-dropdown" role="menu">
+                    {MORE_NAV_ITEMS.map((item) => {
+                      const active = location.pathname.startsWith(item.path);
+                      return (
+                        <Link
+                          key={item.path}
+                          to={item.path}
+                          role="menuitem"
+                          className={`nav-dropdown-item ${active ? 'active' : ''}`}
+                          aria-current={active ? 'page' : undefined}
+                        >
+                          <span className="nav-dropdown-title">{item.label}</span>
+                          <span className="nav-dropdown-desc">{item.desc}</span>
+                        </Link>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
             </nav>
           </div>
 
@@ -195,10 +273,7 @@ function Navbar({ theme, toggleTheme, onOpenPalette }) {
       </header>
 
       <nav className="mobile-bottom-nav" aria-label="Navegação mobile">
-        {[
-          ...NAV_ITEMS,
-          { path: '/carteira', label: 'Carteira', icon: <WalletIcon size={16} /> },
-        ].map((item) => {
+        {MOBILE_NAV_ITEMS.map((item) => {
           const active =
             item.path === '/'
               ? location.pathname === '/'
@@ -215,6 +290,15 @@ function Navbar({ theme, toggleTheme, onOpenPalette }) {
             </Link>
           );
         })}
+        <button
+          type="button"
+          className="mobile-nav-item mobile-nav-action"
+          onClick={onOpenPalette}
+          aria-label="Abrir busca e menu completo"
+        >
+          <SearchIcon size={17} />
+          <span>Explorar</span>
+        </button>
       </nav>
     </>
   );
@@ -312,6 +396,7 @@ function AppShell({ theme, toggleTheme }) {
         theme={theme}
         toggleTheme={toggleTheme}
       />
+      <ScrollToTopButton />
       <ToastContainer />
     </div>
   );
@@ -330,6 +415,8 @@ function App() {
 
   React.useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
+    const meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) meta.setAttribute('content', theme === 'dark' ? '#090d16' : '#f8fafc');
     try {
       localStorage.setItem('investanalytics_theme', theme);
     } catch {}

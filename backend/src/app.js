@@ -52,7 +52,7 @@ function createApp() {
       return next();
     });
   }
-  for (const protectedWrite of ['/api/notes', '/api/watchlists', '/api/investments']) {
+  for (const protectedWrite of ['/api/notes', '/api/watchlists', '/api/investments', '/api/intelligence/run']) {
     app.use(protectedWrite, writeAccessGuard);
   }
 

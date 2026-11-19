@@ -100,12 +100,14 @@ def main() -> int:
                     dict(r)
                     for r in conn.execute("SELECT name, value, unit FROM macro_indicators").fetchall()
                 ]
+            top_clean = [r for r in rankings if not r.get("deterioration_flags")][: args.top]
+            alerts_list = [r for r in rankings if r.get("deterioration_flags")]
             ai_summary = safe_step(
                 "Gemini AI",
                 lambda: generate_grounded_summary(
                     date.today().isoformat(),
-                    rankings[: args.top],
-                    [r for r in rankings if r.get("deterioration_flags")],
+                    top_clean,
+                    alerts_list,
                     macro,
                 ),
                 None,

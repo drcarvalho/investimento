@@ -95,6 +95,38 @@ function Portfolio() {
   const [editAvg, setEditAvg] = React.useState('');
   const [confirmDeleteId, setConfirmDeleteId] = React.useState(null);
 
+  // UX controls: privacy mode, search, type filter & sorting
+  const [hideValues, setHideValues] = React.useState(() => {
+    try {
+      return localStorage.getItem('investanalytics_hide_values') === '1';
+    } catch {
+      return false;
+    }
+  });
+  const [searchTerm, setSearchTerm] = React.useState('');
+  const [typeFilter, setTypeFilter] = React.useState('all');
+  const [sortBy, setSortBy] = React.useState('value_desc');
+
+  const toggleHideValues = () => {
+    setHideValues((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem('investanalytics_hide_values', next ? '1' : '0');
+      } catch {}
+      return next;
+    });
+  };
+
+  const displayBrl = (v) => (hideValues ? 'R$ •••••' : fmtBrl(v));
+  const previewTotal = React.useMemo(() => {
+    const q = Number(quantity);
+    const p = Number(avgPrice);
+    if (Number.isFinite(q) && q > 0 && Number.isFinite(p) && p > 0) {
+      return q * p;
+    }
+    return null;
+  }, [quantity, avgPrice]);
+
   const loadPortfolio = React.useCallback(() => {
     setLoading(true);
     setError(null);
@@ -266,6 +298,16 @@ function Portfolio() {
           >
             Exportar CSV
           </button>
+          <button
+            type="button"
+            className="btn btn-ghost"
+            onClick={toggleHideValues}
+            aria-pressed={hideValues}
+            style={{ fontSize: '0.8rem' }}
+            title={hideValues ? 'Mostrar valores financeiros' : 'Ocultar valores financeiros'}
+          >
+            {hideValues ? 'Mostrar R$' : 'Ocultar R$'}
+          </button>
           <button className="btn btn-ghost" onClick={loadPortfolio} style={{ fontSize: '0.8rem' }}>
             <RefreshIcon size={14} /> Atualizar
           </button>
@@ -284,7 +326,7 @@ function Portfolio() {
         <div className="card" style={styles.kpiCard}>
           <span style={styles.kpiLabel}>Patrimônio Atual</span>
           <strong className="num" style={styles.kpiValue}>
-            {loading ? '—' : fmtBrl(summary.totalValue ?? summary.totalCost)}
+            {loading ? '—' : displayBrl(summary.totalValue ?? summary.totalCost)}
           </strong>
           <span style={styles.kpiSub}>
             {summary.assetCount || 0} {(summary.assetCount || 0) === 1 ? 'ativo na carteira' : 'ativos na carteira'}
@@ -294,7 +336,7 @@ function Portfolio() {
         <div className="card" style={styles.kpiCard}>
           <span style={styles.kpiLabel}>Total Investido</span>
           <strong className="num" style={styles.kpiValue}>
-            {loading ? '—' : fmtBrl(summary.totalCost)}
+            {loading ? '—' : displayBrl(summary.totalCost)}
           </strong>
           <span style={styles.kpiSub}>Custo acumulado dos aportes</span>
         </div>
@@ -313,7 +355,7 @@ function Portfolio() {
                   : 'var(--negative)',
             }}
           >
-            {loading ? '—' : fmtBrl(summary.totalProfitLoss)}
+            {loading ? '—' : displayBrl(summary.totalProfitLoss)}
           </strong>
           <span
             className="num"
@@ -335,23 +377,30 @@ function Portfolio() {
         <div className="card" style={styles.kpiCard}>
           <span style={styles.kpiLabel}>Dividendos Estimados</span>
           <strong className="num" style={{ ...styles.kpiValue, color: 'var(--positive)' }}>
-            {loading ? '—' : fmtBrl(summary.estimatedAnnualDividends)}
+            {loading ? '—' : displayBrl(summary.estimatedAnnualDividends)}
           </strong>
           <span style={styles.kpiSub}>
-            ~{fmtBrl(summary.estimatedMonthlyDividends)} / mês (base DY 12m)
+            ~{displayBrl(summary.estimatedMonthlyDividends)} / mês (base DY 12m)
           </span>
         </div>
       </div>
 
       {/* Add Position Form */}
       <form onSubmit={handleAdd} className="card" style={styles.formCard}>
-        <div style={{ marginBottom: '0.75rem' }}>
-          <strong style={{ fontSize: '0.92rem', color: 'var(--text-primary)' }}>
-            Registrar Aporte ou Nova Posição
-          </strong>
-          <div style={{ fontSize: '0.76rem', color: 'var(--text-muted)' }}>
-            Se o ativo já estiver na carteira, o preço médio ponderado é recalculado automaticamente.
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap', marginBottom: '0.75rem' }}>
+          <div>
+            <strong style={{ fontSize: '0.92rem', color: 'var(--text-primary)' }}>
+              Registrar Aporte ou Nova Posição
+            </strong>
+            <div style={{ fontSize: '0.76rem', color: 'var(--text-muted)' }}>
+              Se o ativo já estiver na carteira, o preço médio ponderado é recalculado automaticamente.
+            </div>
           </div>
+          {previewTotal != null && (
+            <span className="pf-preview-chip num">
+              Total do aporte: <strong>{fmtBrl(previewTotal)}</strong>
+            </span>
+          )}
         </div>
         <div style={styles.formGrid}>
           <div style={styles.field}>
@@ -423,7 +472,7 @@ function Portfolio() {
                         <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.sector}</span>
                       </span>
                       <span className="num" style={{ color: 'var(--text-primary)', fontWeight: 700, whiteSpace: 'nowrap' }}>
-                        {fmtBrl(s.value)} <span style={{ color: 'var(--text-muted)', fontWeight: 500 }}>({s.pct.toFixed(1).replace('.', ',')}%)</span>
+                        {displayBrl(s.value)} <span style={{ color: 'var(--text-muted)', fontWeight: 500 }}>({s.pct.toFixed(1).replace('.', ',')}%)</span>
                       </span>
                     </div>
                     <div style={{ height: 6, background: 'var(--border-subtle)', borderRadius: 999, overflow: 'hidden' }}>
@@ -465,6 +514,47 @@ function Portfolio() {
             </div>
           </div>
         ) : (
+          <>
+            <div className="pf-table-toolbar">
+              <div className="pf-filter-pills" role="group" aria-label="Filtrar por tipo de ativo">
+                {[
+                  { id: 'all', label: `Todos (${positions.length})` },
+                  { id: 'stock', label: 'Ações' },
+                  { id: 'fii', label: 'FIIs' },
+                ].map((opt) => (
+                  <button
+                    key={opt.id}
+                    type="button"
+                    className={`pf-pill ${typeFilter === opt.id ? 'active' : ''}`}
+                    onClick={() => setTypeFilter(opt.id)}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+              <div className="pf-toolbar-controls">
+                <input
+                  type="search"
+                  className="field-input"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  placeholder="Filtrar ticker ou setor..."
+                  aria-label="Filtrar posições por ticker ou setor"
+                  style={{ minWidth: 190, height: 34, fontSize: '0.8rem' }}
+                />
+                <select
+                  className="field-input"
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value)}
+                  aria-label="Ordenar posições"
+                  style={{ height: 34, fontSize: '0.8rem', minWidth: 155 }}
+                >
+                  <option value="value_desc">Maior valor atual</option>
+                  <option value="profit_desc">Maior retorno (%)</option>
+                  <option value="symbol_asc">Ticker (A–Z)</option>
+                </select>
+              </div>
+            </div>
           <div style={{ overflowX: 'auto' }}>
             <table className="data-table" style={{ minWidth: '880px' }}>
               <thead>
@@ -481,7 +571,26 @@ function Portfolio() {
                 </tr>
               </thead>
               <tbody>
-                {positions.map((p) => {
+                {[...positions]
+                  .filter((p) => {
+                    if (typeFilter === 'stock' && p.asset_type === 'fii') return false;
+                    if (typeFilter === 'fii' && p.asset_type !== 'fii') return false;
+                    if (searchTerm.trim()) {
+                      const q = searchTerm.trim().toLowerCase();
+                      return (
+                        String(p.symbol || '').toLowerCase().includes(q) ||
+                        String(p.name || '').toLowerCase().includes(q) ||
+                        String(p.sector || '').toLowerCase().includes(q)
+                      );
+                    }
+                    return true;
+                  })
+                  .sort((a, b) => {
+                    if (sortBy === 'profit_desc') return (b.profit_loss_pct ?? -Infinity) - (a.profit_loss_pct ?? -Infinity);
+                    if (sortBy === 'symbol_asc') return String(a.symbol).localeCompare(String(b.symbol));
+                    return (b.current_value ?? b.total_cost ?? 0) - (a.current_value ?? a.total_cost ?? 0);
+                  })
+                  .map((p) => {
                   const isEditing = editingId === p.id;
                   const isGain = (p.profit_loss ?? 0) >= 0;
                   return (
@@ -644,6 +753,7 @@ function Portfolio() {
               </tbody>
             </table>
           </div>
+          </>
         )}
       </div>
 

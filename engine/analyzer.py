@@ -41,6 +41,7 @@ def evaluate_company(row: dict[str, Any], sector_medians: dict[str, float | None
     roe = row.get("roe")
     roic = row.get("roic")
     ml = row.get("margem_liquida")
+    dl = row.get("divida_liquida")
     dl_ebitda = row.get("divida_liquida_ebitda")
     rev_g = row.get("crescimento_receita")
     ni_g = row.get("crescimento_lucro")
@@ -49,12 +50,37 @@ def evaluate_company(row: dict[str, Any], sector_medians: dict[str, float | None
     risks: list[str] = []
     deterioration: list[str] = []
 
+    core_metrics = [pl, pvp, dy, roe, roic, ml, dl_ebitda, rev_g, ni_g]
+    if all(m is None for m in core_metrics):
+        return {
+            "symbol": row["symbol"],
+            "sector": row.get("sector") or "Outros",
+            "score": 0.0,
+            "classification": "Dados Insuficientes",
+            "valuation_score": 0.0,
+            "profitability_score": 0.0,
+            "dividend_score": 0.0,
+            "debt_score": 0.0,
+            "growth_score": 0.0,
+            "deterioration_flags": [],
+            "positives": [],
+            "risks": ["Sem indicadores fundamentalistas suficientes para avaliação"],
+            "explanation": "Dados fundamentalistas insuficientes para cálculo quantitativo.",
+            "criteria": {
+                "weights": WEIGHTS,
+                "sectorMedians": sector_medians,
+                "selicRef": selic,
+            },
+        }
+
     # 1. Valuation (max 25)
     val_score = 0.0
     if pl is not None:
         if pl < 0:
             deterioration.append(f"Prejuízo líquido (P/L negativo: {pl:.1f})")
             risks.append("Empresa operando no prejuízo")
+        elif pl == 0:
+            risks.append("P/L zerado ou indisponível")
         elif pl <= 8:
             val_score += 15.0
             positives.append(f"P/L muito descontado ({pl:.2f}x)")
@@ -68,16 +94,19 @@ def evaluate_company(row: dict[str, Any], sector_medians: dict[str, float | None
             risks.append(f"Múltiplo P/L elevado ({pl:.2f}x)")
 
     if pvp is not None:
-        if 0 < pvp <= 1.2:
+        if pvp <= 0:
+            deterioration.append(f"Patrimônio líquido negativo ou zerado (P/VP {pvp:.2f}x)")
+            risks.append("Passivo a descoberto / patrimônio líquido comprometido")
+        elif pvp <= 1.2:
             val_score += 10.0
             positives.append(f"Negociando próximo ou abaixo do patrimônio (P/VP {pvp:.2f}x)")
-        elif 0 < pvp <= 2.2:
+        elif pvp <= 2.2:
             val_score += 6.0
-        elif pvp > 4.0:
+        elif pvp <= 4.0:
+            val_score += 4.0
+        else:
             val_score += 2.0
             risks.append(f"P/VP esticado ({pvp:.2f}x)")
-        else:
-            val_score += 4.0
     elif pl is not None and pl > 0:
         val_score = min(25.0, val_score * 1.3)
 
@@ -143,9 +172,17 @@ def evaluate_company(row: dict[str, Any], sector_medians: dict[str, float | None
     # 4. Financial Health / Debt (max 15)
     debt_score = 10.0  # neutral when N/A (e.g., banks where Net Debt/EBITDA does not apply)
     if dl_ebitda is not None:
+        is_net_cash = (dl is not None and dl < 0) or (
+            dl is None and (ml is None or ml > 0) and (pl is None or pl > 0)
+        )
         if dl_ebitda < 0:
-            debt_score = 15.0
-            positives.append("Caixa líquido positivo (mais caixa do que dívida)")
+            if is_net_cash:
+                debt_score = 15.0
+                positives.append("Caixa líquido positivo (mais caixa do que dívida)")
+            else:
+                debt_score = 1.0
+                deterioration.append(f"EBITDA negativo com endividamento (Dív. Líq./EBITDA {dl_ebitda:.2f}x)")
+                risks.append("Geração operacional negativa (EBITDA negativo)")
         elif dl_ebitda <= 1.5:
             debt_score = 14.0
             positives.append(f"Endividamento conservador (Dív. Líq./EBITDA {dl_ebitda:.2f}x)")
@@ -248,9 +285,8 @@ def run_quantitative_analysis(conn: sqlite3.Connection) -> list[dict[str, Any]]:
         """
     ).fetchall()
     records = [dict(r) for r in rows]
-
-    # Clear stale rows that no longer match active stock universe
-    conn.execute("DELETE FROM quant_rankings")
+    if not records:
+        return []
 
     # Compute sector medians
     by_sector: dict[str, list[dict[str, Any]]] = {}
@@ -327,6 +363,11 @@ def run_quantitative_analysis(conn: sqlite3.Connection) -> list[dict[str, Any]]:
                 now,
             ),
         )
+
+    active_symbols = [ev["symbol"] for ev in evaluated]
+    if active_symbols:
+        placeholders = ",".join("?" for _ in active_symbols)
+        conn.execute(f"DELETE FROM quant_rankings WHERE symbol NOT IN ({placeholders})", active_symbols)
 
     conn.commit()
     return evaluated

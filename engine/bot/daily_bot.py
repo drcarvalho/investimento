@@ -63,6 +63,18 @@ def format_telegram_report(
     return "\n".join(lines)
 
 
+TELEGRAM_MAX_LEN = 4096
+
+
+def _truncate_telegram_html(text: str, limit: int = TELEGRAM_MAX_LEN) -> str:
+    if len(text) <= limit:
+        return text
+    footer = f"\n\n<i>{_esc(DISCLAIMER)}</i>"
+    cutoff = max(0, limit - len(footer) - 20)
+    trimmed = text[:cutoff].rsplit("\n", 1)[0]
+    return f"{trimmed}\n[...]{footer}"
+
+
 def send_telegram_message(text: str) -> bool:
     """Send report via Telegram Bot API if TELEGRAM_BOT_TOKEN & TELEGRAM_CHAT_ID are configured."""
     token = os.environ.get("TELEGRAM_BOT_TOKEN", "").strip()
@@ -74,7 +86,7 @@ def send_telegram_message(text: str) -> bool:
     payload = json.dumps(
         {
             "chat_id": chat_id,
-            "text": text,
+            "text": _truncate_telegram_html(text),
             "parse_mode": "HTML",
             "disable_web_page_preview": True,
         }
