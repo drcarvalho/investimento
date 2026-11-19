@@ -112,7 +112,7 @@ export function DividendSimulator({ symbol, price, dividendYield }) {
         <div style={styles.chartHeader}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap', fontSize: '0.76rem' }}>
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontWeight: 600, color: 'var(--text-secondary)' }}>
-              <span style={{ width: 10, height: 10, borderRadius: 2, background: '#2563eb' }} />
+              <span style={{ width: 10, height: 10, borderRadius: 2, background: '#0f766e' }} />
               Aportado
             </span>
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontWeight: 600, color: 'var(--text-secondary)' }}>
@@ -158,7 +158,7 @@ export function DividendSimulator({ symbol, price, dividendYield }) {
                     }}
                   >
                     <div style={{ height: `${earnPct}%`, background: '#10b981' }} />
-                    <div style={{ height: `${contribPct}%`, background: '#2563eb' }} />
+                    <div style={{ height: `${contribPct}%`, background: '#0f766e' }} />
                   </div>
                 </div>
                 {(yearsClamped <= 15 || pt.year === 1 || pt.year === yearsClamped || pt.year % 5 === 0) && (

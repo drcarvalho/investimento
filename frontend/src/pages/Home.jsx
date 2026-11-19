@@ -294,101 +294,38 @@ function Home() {
 
   return (
     <div>
-      {/* Compact Financial Portal Header */}
-      <div className="portal-topbar">
+      {/* Editorial Minimalist Header */}
+      <div className="portal-topbar editorial-topbar">
         <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.55rem', flexWrap: 'wrap' }}>
-            <h1 style={styles.pageTitle}>Cotações &amp; Mercado B3</h1>
-            <span className="pill pill-pos" style={{ gap: '0.38rem', fontSize: '0.68rem', padding: '0.16rem 0.55rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap' }}>
+            <h1 style={styles.pageTitle}>Mercado Brasileiro</h1>
+            <span className="editorial-live-tag">
               <span className="live-dot" style={{ width: 6, height: 6 }} />
-              Ao vivo
+              B3 Ao vivo
             </span>
             {lastUpdate && (
-              <span className="mono" style={{ fontSize: '0.7rem', color: 'var(--text-subtle)' }}>
-                {lastUpdate}
+              <span className="mono" style={{ fontSize: '0.72rem', color: 'var(--text-subtle)' }}>
+                Atualizado às {lastUpdate}
               </span>
             )}
           </div>
           <p style={styles.pageSub}>
-            Gráficos interativos, cotações, setores e fundamentos oficiais da B3, CVM e Banco Central.
+            Panorama diário de cotações, juros e fundamentos oficiais (B3, CVM e Banco Central).
           </p>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', flex: '1 1 320px', maxWidth: 480, justifyContent: 'flex-end' }}>
-          <form onSubmit={handleSearchSubmit} style={{ flex: 1 }}>
-            <div className="hero-search-pill">
-              <span style={styles.searchIcon}>
-                <SearchIcon size={15} />
-              </span>
-              <input
-                type="text"
-                aria-label="Buscar cotação na B3 por ticker ou empresa"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                onKeyDown={handleKeyDown}
-                placeholder="Cotação rápida (PETR4, VALE3, MXRF11...)"
-                style={styles.searchInput}
-              />
-              <button type="submit" className="btn btn-primary" style={{ padding: '0.42rem 0.85rem', fontSize: '0.8rem' }}>
-                Abrir
-              </button>
-
-              {suggestions.length > 0 && (
-                <div className="search-dropdown">
-                  {suggestions.map((s, idx) => {
-                    const isPos = (s.change ?? 0) >= 0;
-                    return (
-                      <div
-                        key={s.symbol}
-                        className={`search-dropdown-item ${idx === activeIdx ? 'kb-active' : ''}`}
-                        onMouseEnter={() => setActiveIdx(idx)}
-                        onClick={() => {
-                          setSuggestions([]);
-                          navigate(`/acoes/${s.symbol}`);
-                        }}
-                      >
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', minWidth: 0 }}>
-                          <StockLogo src={s.logo} symbol={s.symbol} size={26} radius={6} />
-                          <div style={{ minWidth: 0 }}>
-                            <div style={{ fontWeight: 700, color: 'var(--text-primary)', fontSize: '0.86rem' }}>
-                              {s.symbol}
-                            </div>
-                            <div style={styles.miniName}>{s.name}</div>
-                          </div>
-                        </div>
-                        <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                          <div className="num" style={{ fontWeight: 700, color: 'var(--text-primary)', fontSize: '0.84rem' }}>
-                            {s.price != null ? `R$ ${s.price.toFixed(2).replace('.', ',')}` : '—'}
-                          </div>
-                          <div
-                            className="num"
-                            style={{
-                              fontSize: '0.72rem',
-                              fontWeight: 700,
-                              color: s.change == null ? 'var(--text-subtle)' : isPos ? 'var(--positive)' : 'var(--negative)',
-                            }}
-                          >
-                            {s.change != null ? `${isPos ? '+' : ''}${s.change.toFixed(2).replace('.', ',')}%` : '—'}
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          </form>
-
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           <button
             type="button"
             className="btn btn-ghost"
-            style={{ padding: '0.52rem 0.72rem', fontSize: '0.78rem' }}
+            style={{ padding: '0.45rem 0.75rem', fontSize: '0.78rem', gap: '0.4rem' }}
             onClick={() => fetchAll(true)}
             disabled={refreshing}
             title={lastUpdate ? `Última atualização às ${lastUpdate}` : 'Atualizar cotações'}
             aria-label="Atualizar cotações do mercado"
           >
             <RefreshIcon size={14} />
+            <span>{refreshing ? 'Atualizando...' : 'Atualizar'}</span>
           </button>
         </div>
       </div>

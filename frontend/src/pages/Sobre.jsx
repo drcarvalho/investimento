@@ -49,7 +49,7 @@ function Sobre() {
       <div style={styles.twoCol}>
         <div className="card" style={{ padding: '1.35rem' }}>
           <h2 className="section-title" style={{ fontSize: '1rem', marginBottom: '0.65rem' }}>
-            <span style={{ color: '#2563eb', display: 'flex' }}><CalculatorIcon size={18} /></span>
+            <span style={{ color: '#0f766e', display: 'flex' }}><CalculatorIcon size={18} /></span>
             Fórmulas de Preço Justo
           </h2>
           <div style={styles.formulaBlock}>

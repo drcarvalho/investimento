@@ -1,7 +1,7 @@
 import React from 'react';
 import { InfoIcon } from './Icons';
 
-function IndicatorCard({ title, value, subtitle, color = '#2563eb', highlight, tooltip }) {
+function IndicatorCard({ title, value, subtitle, color = '#0f766e', highlight, tooltip }) {
   const [open, setOpen] = React.useState(false);
   const wrapRef = React.useRef(null);
 

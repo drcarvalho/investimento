@@ -2,7 +2,7 @@ import React from 'react';
 import { safeHttpUrl } from '../utils/security';
 
 const BG_PALETTE = [
-  '#2563eb',
+  '#0f766e',
   '#059669',
   '#7c3aed',
   '#d97706',

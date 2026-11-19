@@ -1,6 +1,6 @@
 import React from 'react';
 
-const PALETTE = ['#2563eb', '#10b981', '#f59e0b', '#ec4899'];
+const PALETTE = ['#0f766e', '#10b981', '#f59e0b', '#ec4899'];
 
 const AXES = [
   {

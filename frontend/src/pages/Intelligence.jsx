@@ -297,11 +297,11 @@ function Intelligence() {
                       {/* 5 Transparent Pillar Bars */}
                       <div style={styles.pillarsGrid}>
                         {[
-                          { label: 'Valuation', val: item.breakdown.valuation, max: 25, color: '#2563eb' },
+                          { label: 'Valuation', val: item.breakdown.valuation, max: 25, color: '#0f766e' },
                           { label: 'Rentabilidade', val: item.breakdown.profitability, max: 25, color: '#10b981' },
                           { label: 'Dividendos', val: item.breakdown.dividend, max: 20, color: '#059669' },
                           { label: 'Saúde / Dívida', val: item.breakdown.debt, max: 15, color: '#f59e0b' },
-                          { label: 'Crescimento', val: item.breakdown.growth, max: 15, color: '#6366f1' },
+                          { label: 'Crescimento', val: item.breakdown.growth, max: 15, color: '#475569' },
                         ].map((p) => (
                           <div key={p.label}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem', color: 'var(--text-muted)', marginBottom: 3 }}>

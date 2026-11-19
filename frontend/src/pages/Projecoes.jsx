@@ -51,13 +51,13 @@ function ScenarioBar({ bear, base, bull, label }) {
         <div style={{
           position: 'absolute', left: `calc(${basePos}% - 5px)`, top: 2, bottom: 2,
           width: 10, borderRadius: 5,
-          background: '#2563eb', border: '2px solid var(--bg-surface)',
+          background: '#0f766e', border: '2px solid var(--bg-surface)',
           zIndex: 3,
         }} />
       </div>
       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.65rem', marginTop: 2 }}>
         <span style={{ color: '#f43f5e' }}>Pessimista</span>
-        <span style={{ color: '#2563eb', fontWeight: 700 }}>Base: {base >= 0 ? '+' : ''}{fmt(base, 1)}%</span>
+        <span style={{ color: '#0f766e', fontWeight: 700 }}>Base: {base >= 0 ? '+' : ''}{fmt(base, 1)}%</span>
         <span style={{ color: '#10b981' }}>Otimista</span>
       </div>
     </div>
@@ -243,8 +243,8 @@ function Projecoes() {
                           <div className="num" style={{ fontSize: '0.82rem', fontWeight: 800, color: '#f43f5e' }}>R$ {fmt(s.bear.price)}</div>
                         </div>
                         <div style={{ textAlign: 'center' }}>
-                          <div style={{ fontSize: '0.62rem', color: '#2563eb', fontWeight: 700, textTransform: 'uppercase' }}>Base</div>
-                          <div className="num" style={{ fontSize: '0.82rem', fontWeight: 800, color: '#2563eb' }}>R$ {fmt(s.base.price)}</div>
+                          <div style={{ fontSize: '0.62rem', color: '#0f766e', fontWeight: 700, textTransform: 'uppercase' }}>Base</div>
+                          <div className="num" style={{ fontSize: '0.82rem', fontWeight: 800, color: '#0f766e' }}>R$ {fmt(s.base.price)}</div>
                         </div>
                         <div style={{ textAlign: 'center' }}>
                           <div style={{ fontSize: '0.62rem', color: '#10b981', fontWeight: 700, textTransform: 'uppercase' }}>Otim.</div>
@@ -294,7 +294,7 @@ function Projecoes() {
           <strong>📖 Como interpretar as projeções:</strong>
           <ul style={{ margin: '0.3rem 0 0', paddingLeft: '1.1rem' }}>
             <li><span style={{ color: '#10b981' }}>Cenário otimista</span>: supõe que o preço converge ao valor justo (Graham/Bazin), com crescimento forte e dividendos reinvestidos.</li>
-            <li><span style={{ color: '#2563eb' }}>Cenário base</span>: convergência parcial ao valor justo, apenas crescimento orgânico e dividendos normais.</li>
+            <li><span style={{ color: '#0f766e' }}>Cenário base</span>: convergência parcial ao valor justo, apenas crescimento orgânico e dividendos normais.</li>
             <li><span style={{ color: '#f43f5e' }}>Cenário pessimista</span>: sem recuperação de valor, com impacto de risco de endividamento e ambiente macroeconômico adverso.</li>
             <li>As projeções <strong>não</strong> consideram eventos extraordinários (M&A, regulação, crises globais, mudanças na Selic).</li>
           </ul>

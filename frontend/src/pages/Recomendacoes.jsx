@@ -273,8 +273,8 @@ function Recomendacoes() {
                               <div className="num" style={{ color: 'var(--text-muted)', fontSize: '0.65rem' }}>R$ {fmt(s.bear.price)}</div>
                             </div>
                             <div>
-                              <span style={{ color: '#2563eb', fontWeight: 700 }}>Base</span>
-                              <div className="num" style={{ color: '#2563eb', fontWeight: 800 }}>{s.base.returnPct >= 0 ? '+' : ''}{fmt(s.base.returnPct, 1)}%</div>
+                              <span style={{ color: '#0f766e', fontWeight: 700 }}>Base</span>
+                              <div className="num" style={{ color: '#0f766e', fontWeight: 800 }}>{s.base.returnPct >= 0 ? '+' : ''}{fmt(s.base.returnPct, 1)}%</div>
                               <div className="num" style={{ color: 'var(--text-muted)', fontSize: '0.65rem' }}>R$ {fmt(s.base.price)}</div>
                             </div>
                             <div>

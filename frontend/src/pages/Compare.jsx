@@ -8,7 +8,7 @@ import { showToast } from '../components/Toast';
 import { apiFetch } from '../api';
 import { sanitizeTicker } from '../utils/security';
 
-const LINE_COLORS = ['#2563eb', '#10b981', '#f59e0b', '#ec4899', '#8b5cf6'];
+const LINE_COLORS = ['#0f766e', '#10b981', '#f59e0b', '#ec4899', '#8b5cf6'];
 
 function fmt(v, dec = 2, suffix = '') {
   if (v === null || v === undefined || isNaN(v)) return '—';

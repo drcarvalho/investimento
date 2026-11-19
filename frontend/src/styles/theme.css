@@ -2231,55 +2231,55 @@ textarea:focus-visible,
 }
 
 /* ==========================================================================
-   TERMINAL INSTITUCIONAL (PRO) — Design System Override
-   Neutral charcoal/paper palette, IBM Plex typography, crisp 1px hairlines,
-   zero decorative AI gradients/glows, high-contrast tabular financial data.
+   PORTAL EDITORIAL MINIMALISTA (Financial Times / Investidor10 Limpo)
+   Warm paper canvas (#f9f7f2), Newsreader serif headings, IBM Plex Sans/Mono,
+   crisp 1px editorial hairlines, generous whitespace, zero AI gradients/glows.
    ========================================================================== */
 :root {
   --font-sans: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  --font-display: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-display: 'Newsreader', Georgia, 'Times New Roman', serif;
   --font-mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, monospace;
 
-  /* Light theme — neutral warm-stone paper (Koyfin / FT inspired) */
-  --bg-canvas: #f4f4f2;
+  /* Light theme — warm editorial paper */
+  --bg-canvas: #f9f7f2;
   --bg-surface: #ffffff;
-  --bg-surface-subtle: #f8f8f6;
-  --bg-surface-hover: #efefec;
-  --bg-nav: #ffffff;
+  --bg-surface-subtle: #f4f1ea;
+  --bg-surface-hover: #efeae0;
+  --bg-nav: #f9f7f2;
   --bg-hero: #ffffff;
   --bg-input: #ffffff;
 
-  --text-primary: #111214;
-  --text-secondary: #373a40;
-  --text-muted: #5c6068;
-  --text-subtle: #828790;
+  --text-primary: #141413;
+  --text-secondary: #3b3a36;
+  --text-muted: #66635c;
+  --text-subtle: #8c887e;
 
-  --border-subtle: #e2e3e0;
-  --border-strong: #c8cac5;
+  --border-subtle: #e6e1d6;
+  --border-strong: #cfc8b8;
 
-  /* Crisp institutional accent (deep ink + amber/emerald data signals) */
-  --brand: #111214;
-  --brand-hover: #2b2e34;
-  --brand-soft: #ecece9;
-  --brand-border: #c8cac5;
+  /* Editorial forest-green accent */
+  --brand: #0f5132;
+  --brand-hover: #0b3d26;
+  --brand-soft: #eaf3ee;
+  --brand-border: #bfd9ca;
 
-  --positive: #0a7a42;
-  --positive-bright: #0d9450;
-  --positive-soft: #e9f6ef;
+  --positive: #0f6b3e;
+  --positive-bright: #15803d;
+  --positive-soft: #edf7f1;
 
-  --negative: #c62828;
+  --negative: #b42318;
   --negative-bright: #dc2626;
-  --negative-soft: #fdeeee;
+  --negative-soft: #fdf0ef;
 
-  --warning: #b45309;
-  --warning-soft: #fef5e7;
+  --warning: #a15c07;
+  --warning-soft: #fdf6e7;
 
-  --purple: #475569;
-  --cyan: #0f766e;
+  --purple: #57534e;
+  --cyan: #0f5132;
 
   --shadow-sm: none;
-  --shadow-md: 0 1px 2px rgba(17, 18, 20, 0.06);
-  --shadow-lg: 0 8px 24px rgba(17, 18, 20, 0.12);
+  --shadow-md: 0 2px 8px rgba(20, 20, 19, 0.05);
+  --shadow-lg: 0 10px 28px rgba(20, 20, 19, 0.1);
 
   --radius-sm: 4px;
   --radius-md: 6px;
@@ -2287,90 +2287,132 @@ textarea:focus-visible,
 }
 
 [data-theme='dark'] {
-  /* Dark theme — pure neutral charcoal/obsidian (zero blue-purple AI tint) */
-  --bg-canvas: #0c0d0f;
-  --bg-surface: #131518;
-  --bg-surface-subtle: #181a1f;
-  --bg-surface-hover: #1f2228;
-  --bg-nav: #0f1114;
-  --bg-hero: #131518;
-  --bg-input: #0e1013;
+  /* Dark theme — warm espresso charcoal */
+  --bg-canvas: #121210;
+  --bg-surface: #191815;
+  --bg-surface-subtle: #201f1b;
+  --bg-surface-hover: #282621;
+  --bg-nav: #121210;
+  --bg-hero: #191815;
+  --bg-input: #151411;
 
-  --text-primary: #f1f2f4;
-  --text-secondary: #c2c6ce;
-  --text-muted: #8a909b;
-  --text-subtle: #606670;
+  --text-primary: #f3f1ec;
+  --text-secondary: #cac6bc;
+  --text-muted: #969186;
+  --text-subtle: #6e6a61;
 
-  --border-subtle: #23262c;
-  --border-strong: #343841;
+  --border-subtle: #2b2924;
+  --border-strong: #3d3a33;
 
-  /* Institutional amber-gold accent for dark terminal */
-  --brand: #e5a93c;
-  --brand-hover: #f0bc58;
-  --brand-soft: rgba(229, 169, 60, 0.12);
-  --brand-border: rgba(229, 169, 60, 0.34);
+  --brand: #34a86e;
+  --brand-hover: #46bd80;
+  --brand-soft: rgba(52, 168, 110, 0.14);
+  --brand-border: rgba(52, 168, 110, 0.34);
 
-  --positive: #26b86c;
-  --positive-bright: #2fd17d;
-  --positive-soft: rgba(38, 184, 108, 0.12);
+  --positive: #34a86e;
+  --positive-bright: #46bd80;
+  --positive-soft: rgba(52, 168, 110, 0.14);
 
-  --negative: #e55353;
-  --negative-bright: #f26464;
-  --negative-soft: rgba(229, 83, 83, 0.12);
+  --negative: #e05d55;
+  --negative-bright: #ef6c64;
+  --negative-soft: rgba(224, 93, 85, 0.14);
 
-  --warning: #e5a93c;
-  --warning-soft: rgba(229, 169, 60, 0.14);
+  --warning: #d99b38;
+  --warning-soft: rgba(217, 155, 56, 0.14);
 
-  --purple: #9ca3af;
-  --cyan: #38b2ac;
+  --purple: #a8a29e;
+  --cyan: #34a86e;
 
   --shadow-sm: none;
-  --shadow-md: 0 1px 3px rgba(0, 0, 0, 0.45);
-  --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.65);
+  --shadow-md: 0 2px 10px rgba(0, 0, 0, 0.35);
+  --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.55);
 }
 
-/* Crisp typography & flat institutional surfaces */
+/* Editorial Typography */
 html, body {
-  font-feature-settings: "tnum" 0, "cv01" 1;
-  letter-spacing: -0.005em;
+  background: var(--bg-canvas);
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  line-height: 1.55;
 }
 
 h1, h2, h3, .nav-brand, .section-title {
   font-family: var(--font-display);
-  letter-spacing: -0.02em;
+  font-weight: 600;
+  letter-spacing: -0.015em;
 }
 
+/* Editorial Masthead Navbar */
 .navbar {
   background: var(--bg-nav) !important;
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
-  border-bottom: 1px solid var(--border-subtle) !important;
+  border-bottom: 1px solid var(--border-strong) !important;
   box-shadow: none !important;
+}
+
+.nav-brand {
+  font-size: 1.18rem !important;
+  letter-spacing: -0.02em !important;
 }
 
 .nav-brand-badge {
   border-radius: 4px !important;
   background: var(--text-primary) !important;
-  color: var(--bg-surface) !important;
+  color: var(--bg-canvas) !important;
   box-shadow: none !important;
 }
 
 .nav-link {
-  border-radius: 4px !important;
-  font-size: 0.83rem !important;
+  border-radius: 0 !important;
+  font-size: 0.84rem !important;
   font-weight: 500 !important;
+  border-bottom: 2px solid transparent;
+  padding-bottom: 0.45rem !important;
+}
+
+.nav-link:hover {
+  background: transparent !important;
+  color: var(--text-primary) !important;
+  border-bottom-color: var(--border-strong);
 }
 
 .nav-link.active {
-  background: var(--brand-soft) !important;
+  background: transparent !important;
   color: var(--brand) !important;
+  border-bottom-color: var(--brand) !important;
   font-weight: 600 !important;
 }
 
+/* Editorial Topbar on Home */
+.editorial-topbar {
+  padding-bottom: 1rem !important;
+  margin-bottom: 1.15rem !important;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.editorial-live-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.38rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--positive);
+  padding: 0.14rem 0.48rem;
+  border: 1px solid var(--brand-border);
+  background: var(--positive-soft);
+  border-radius: 3px;
+}
+
+/* Clean Editorial Surfaces — crisp 1px rules, zero decorative shadows */
 .card,
 .panel,
 .kpi-card,
-.stat-card {
+.stat-card,
+.spotlight-card,
+.portal-summary-strip {
   background: var(--bg-surface) !important;
   background-image: none !important;
   border: 1px solid var(--border-subtle) !important;
@@ -2378,26 +2420,26 @@ h1, h2, h3, .nav-brand, .section-title {
   box-shadow: none !important;
 }
 
-.card:hover {
-  border-color: var(--border-strong);
+.portal-summary-strip {
+  margin-bottom: 1.35rem !important;
 }
 
+/* Buttons & Controls */
 .btn {
   border-radius: var(--radius-sm) !important;
   box-shadow: none !important;
   font-weight: 600 !important;
-  letter-spacing: -0.005em;
 }
 
 .btn-primary {
   background: var(--brand) !important;
   background-image: none !important;
-  color: var(--bg-surface) !important;
+  color: #ffffff !important;
   border: 1px solid var(--brand) !important;
 }
 
 [data-theme='dark'] .btn-primary {
-  color: #0c0d0f !important;
+  color: #0e1410 !important;
 }
 
 .btn-primary:hover:not(:disabled) {
@@ -2406,7 +2448,7 @@ h1, h2, h3, .nav-brand, .section-title {
 }
 
 .btn-ghost {
-  background: transparent !important;
+  background: var(--bg-surface) !important;
   border: 1px solid var(--border-subtle) !important;
   color: var(--text-secondary) !important;
 }
@@ -2417,14 +2459,14 @@ h1, h2, h3, .nav-brand, .section-title {
   color: var(--text-primary) !important;
 }
 
-/* Replace overly rounded AI pills with crisp terminal tags */
 .chip-btn,
 .pf-pill,
 .pf-preview-chip,
 .badge,
 .tag,
+.pill,
 .nav-cmd-trigger {
-  border-radius: var(--radius-sm) !important;
+  border-radius: 3px !important;
   box-shadow: none !important;
 }
 
@@ -2436,11 +2478,11 @@ textarea {
   box-shadow: none !important;
 }
 
-/* Crisp financial tables */
+/* Editorial Tables */
 .data-table th {
-  font-size: 0.72rem !important;
+  font-size: 0.71rem !important;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.05em;
   color: var(--text-muted) !important;
   background: var(--bg-surface-subtle) !important;
   border-bottom: 1px solid var(--border-strong) !important;

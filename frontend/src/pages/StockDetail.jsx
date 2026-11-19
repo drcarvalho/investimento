@@ -44,7 +44,7 @@ function RadialScore({ score, color }) {
           cy="46"
           r={radius}
           fill="none"
-          stroke={color || '#2563eb'}
+          stroke={color || '#0f766e'}
           strokeWidth="8"
           strokeLinecap="round"
           strokeDasharray={circumference}
@@ -138,7 +138,7 @@ function FairPriceBox({ title, formula, fairPrice, currentPrice, upside }) {
 
 function FinancialBars({ fin }) {
   const perfItems = [
-    { label: 'Receita Total', value: fin.totalRevenue, color: '#2563eb' },
+    { label: 'Receita Total', value: fin.totalRevenue, color: '#0f766e' },
     { label: 'EBITDA', value: fin.ebitda, color: '#0284c7' },
     { label: 'Fluxo de Caixa Livre', value: fin.freeCashflow, color: '#10b981' },
   ].filter((x) => typeof x.value === 'number' && x.value !== 0);
@@ -565,7 +565,7 @@ function StockDetail() {
               title="P/L"
               value={fmtNum(v.pl)}
               subtitle="Preço / Lucro"
-              color="#2563eb"
+              color="#0f766e"
               highlight={v.pl > 0 && v.pl <= 12 ? 'positive' : v.pl < 0 ? 'negative' : undefined}
               tooltip="Anos de lucro atual necessários para recuperar o valor investido. Abaixo de 12–15 sugere desconto."
             />
@@ -573,7 +573,7 @@ function StockDetail() {
               title="P/VP"
               value={fmtNum(v.pvp)}
               subtitle="Preço / Valor Patrimonial"
-              color="#2563eb"
+              color="#0f766e"
               highlight={v.pvp > 0 && v.pvp <= 1.2 ? 'positive' : undefined}
               tooltip="Compara a cotação com o patrimônio líquido contábil por ação."
             />
@@ -700,7 +700,7 @@ function StockDetail() {
           <section style={styles.section}>
             <div className="section-heading">
               <h2 className="section-title">
-                <span style={{ color: '#2563eb', display: 'flex' }}><BarChartIcon size={18} /></span>
+                <span style={{ color: '#0f766e', display: 'flex' }}><BarChartIcon size={18} /></span>
                 Indicadores de Valuation
               </h2>
               <span style={{ fontSize: '0.76rem', color: 'var(--text-muted)' }}>
@@ -708,10 +708,10 @@ function StockDetail() {
               </span>
             </div>
             <div style={styles.cardsGrid}>
-              <IndicatorCard title="P/L" value={fmtNum(v.pl)} subtitle="Preço / Lucro" color="#2563eb" highlight={v.pl > 0 && v.pl <= 12 ? 'positive' : v.pl < 0 ? 'negative' : undefined} tooltip="Indica em quantos anos você recuperaria o valor investido com o lucro atual da empresa." />
-              <IndicatorCard title="P/VP" value={fmtNum(v.pvp)} subtitle="Preço / Valor Patrimonial" color="#2563eb" highlight={v.pvp > 0 && v.pvp <= 1.2 ? 'positive' : undefined} tooltip="Compara o preço de mercado com o patrimônio líquido contábil por ação." />
+              <IndicatorCard title="P/L" value={fmtNum(v.pl)} subtitle="Preço / Lucro" color="#0f766e" highlight={v.pl > 0 && v.pl <= 12 ? 'positive' : v.pl < 0 ? 'negative' : undefined} tooltip="Indica em quantos anos você recuperaria o valor investido com o lucro atual da empresa." />
+              <IndicatorCard title="P/VP" value={fmtNum(v.pvp)} subtitle="Preço / Valor Patrimonial" color="#0f766e" highlight={v.pvp > 0 && v.pvp <= 1.2 ? 'positive' : undefined} tooltip="Compara o preço de mercado com o patrimônio líquido contábil por ação." />
               <IndicatorCard title="Dividend Yield" value={fmtNum(v.dividendYield, 2, '%')} subtitle="Proventos (12m)" color="#10b981" highlight={v.dividendYield >= 6 ? 'positive' : undefined} tooltip="Percentual pago em dividendos e JCP nos últimos 12 meses." />
-              <IndicatorCard title="EV / EBITDA" value={fmtNum(v.evEbitda)} subtitle="Valor da Firma / EBITDA" color="#2563eb" tooltip="Quantos anos de geração operacional de caixa pagariam o valor total da empresa incluindo dívidas." />
+              <IndicatorCard title="EV / EBITDA" value={fmtNum(v.evEbitda)} subtitle="Valor da Firma / EBITDA" color="#0f766e" tooltip="Quantos anos de geração operacional de caixa pagariam o valor total da empresa incluindo dívidas." />
               <IndicatorCard title="LPA" value={v.lpa != null ? `R$ ${fmtNum(v.lpa)}` : '—'} subtitle="Lucro por Ação" color="#0284c7" tooltip="Lucro líquido dividido pela quantidade de ações." />
               <IndicatorCard title="VPA" value={v.vpa != null ? `R$ ${fmtNum(v.vpa)}` : '—'} subtitle="Valor Patrimonial / Ação" color="#0284c7" tooltip="Patrimônio líquido dividido pelo número de ações." />
             </div>
@@ -747,14 +747,14 @@ function StockDetail() {
               <IndicatorCard title="Dív. Líquida (R$)" value={fmtMoney(e.dividaLiquida)} subtitle="Dívida Bruta − Caixa" color="#f59e0b" tooltip="Saldo real de dívida após descontar o caixa disponível. Negativo indica caixa líquido." />
               <IndicatorCard title="Dív. Líquida / EBITDA" value={fmtNum(e.dividaLiquidaEbitda)} subtitle={e.dividaLiquidaEbitda != null && e.dividaLiquidaEbitda < 0 ? 'Caixa líquido positivo' : 'Alavancagem operacional'} color="#f59e0b" highlight={e.dividaLiquidaEbitda != null ? (e.dividaLiquidaEbitda <= 2 ? 'positive' : e.dividaLiquidaEbitda > 3.5 ? 'negative' : undefined) : undefined} tooltip="Abaixo de 2,5x é saudável; negativo indica mais caixa que dívida." />
               <IndicatorCard title="Dív. Líquida / PL" value={fmtNum(e.dividaLiquidaPl)} subtitle="Alavancagem patrimonial" color="#f59e0b" tooltip="Proporção da dívida líquida sobre o patrimônio líquido." />
-              <IndicatorCard title="Cresc. Receita" value={stock.crescimento?.receita != null ? `${stock.crescimento.receita >= 0 ? '+' : ''}${fmtNum(stock.crescimento.receita, 1, '%')}` : '—'} subtitle="Variação reportada" color="#6366f1" highlight={stock.crescimento?.receita > 0 ? 'positive' : stock.crescimento?.receita < 0 ? 'negative' : undefined} tooltip="Crescimento da receita líquida com base nos dados oficiais disponíveis." />
-              <IndicatorCard title="Cresc. Lucro" value={stock.crescimento?.lucro != null ? `${stock.crescimento.lucro >= 0 ? '+' : ''}${fmtNum(stock.crescimento.lucro, 1, '%')}` : '—'} subtitle="Variação reportada" color="#6366f1" highlight={stock.crescimento?.lucro > 0 ? 'positive' : stock.crescimento?.lucro < 0 ? 'negative' : undefined} tooltip="Crescimento do lucro líquido reportado." />
+              <IndicatorCard title="Cresc. Receita" value={stock.crescimento?.receita != null ? `${stock.crescimento.receita >= 0 ? '+' : ''}${fmtNum(stock.crescimento.receita, 1, '%')}` : '—'} subtitle="Variação reportada" color="#475569" highlight={stock.crescimento?.receita > 0 ? 'positive' : stock.crescimento?.receita < 0 ? 'negative' : undefined} tooltip="Crescimento da receita líquida com base nos dados oficiais disponíveis." />
+              <IndicatorCard title="Cresc. Lucro" value={stock.crescimento?.lucro != null ? `${stock.crescimento.lucro >= 0 ? '+' : ''}${fmtNum(stock.crescimento.lucro, 1, '%')}` : '—'} subtitle="Variação reportada" color="#475569" highlight={stock.crescimento?.lucro > 0 ? 'positive' : stock.crescimento?.lucro < 0 ? 'negative' : undefined} tooltip="Crescimento do lucro líquido reportado." />
               {e.liquidezCorrente != null && (
                 <IndicatorCard title="Liquidez Corrente" value={fmtNum(e.liquidezCorrente)} subtitle="Curto prazo (AC / PC)" color="#f59e0b" tooltip="Acima de 1,0 indica folga para pagar contas de curto prazo." />
               )}
-              <IndicatorCard title="Volume Negociado" value={fmtVol(stock.volume)} subtitle="Ações no pregão" color="#6366f1" />
-              <IndicatorCard title="Mín / Máx do Dia" value={stock.dayLow && stock.dayHigh ? `R$ ${fmtNum(stock.dayLow)} – ${fmtNum(stock.dayHigh)}` : '—'} subtitle="Oscilação intradiária" color="#6366f1" />
-              <IndicatorCard title="Faixa 52 Semanas" value={stock.fiftyTwoWeekLow && stock.fiftyTwoWeekHigh ? `R$ ${fmtNum(stock.fiftyTwoWeekLow)} – ${fmtNum(stock.fiftyTwoWeekHigh)}` : '—'} subtitle={pos52 != null ? `Posição atual: ${Math.round(pos52)}% da faixa` : 'Mínima e máxima anual'} color="#6366f1" />
+              <IndicatorCard title="Volume Negociado" value={fmtVol(stock.volume)} subtitle="Ações no pregão" color="#475569" />
+              <IndicatorCard title="Mín / Máx do Dia" value={stock.dayLow && stock.dayHigh ? `R$ ${fmtNum(stock.dayLow)} – ${fmtNum(stock.dayHigh)}` : '—'} subtitle="Oscilação intradiária" color="#475569" />
+              <IndicatorCard title="Faixa 52 Semanas" value={stock.fiftyTwoWeekLow && stock.fiftyTwoWeekHigh ? `R$ ${fmtNum(stock.fiftyTwoWeekLow)} – ${fmtNum(stock.fiftyTwoWeekHigh)}` : '—'} subtitle={pos52 != null ? `Posição atual: ${Math.round(pos52)}% da faixa` : 'Mínima e máxima anual'} color="#475569" />
             </div>
           </section>
 

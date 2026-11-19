@@ -13,7 +13,7 @@ import { showToast } from '../components/Toast';
 import { apiFetch } from '../api';
 import { escapeCsvCell, sanitizeTicker } from '../utils/security';
 
-const SECTOR_COLORS = ['#2563eb', '#059669', '#0284c7', '#d97706', '#6366f1', '#db2777', '#64748b'];
+const SECTOR_COLORS = ['#0f766e', '#059669', '#0284c7', '#d97706', '#475569', '#db2777', '#64748b'];
 
 function SectorDonut({ sectors = [] }) {
   const radius = 56;
