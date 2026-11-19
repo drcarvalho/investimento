@@ -416,7 +416,7 @@ function App() {
   React.useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
     const meta = document.querySelector('meta[name="theme-color"]');
-    if (meta) meta.setAttribute('content', theme === 'dark' ? '#090d16' : '#f8fafc');
+    if (meta) meta.setAttribute('content', theme === 'dark' ? '#0c0d0f' : '#f4f4f2');
     try {
       localStorage.setItem('investanalytics_theme', theme);
     } catch {}

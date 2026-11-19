@@ -2229,3 +2229,239 @@ textarea:focus-visible,
   gap: 0.5rem;
   flex-wrap: wrap;
 }
+
+/* ==========================================================================
+   TERMINAL INSTITUCIONAL (PRO) — Design System Override
+   Neutral charcoal/paper palette, IBM Plex typography, crisp 1px hairlines,
+   zero decorative AI gradients/glows, high-contrast tabular financial data.
+   ========================================================================== */
+:root {
+  --font-sans: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-display: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, monospace;
+
+  /* Light theme — neutral warm-stone paper (Koyfin / FT inspired) */
+  --bg-canvas: #f4f4f2;
+  --bg-surface: #ffffff;
+  --bg-surface-subtle: #f8f8f6;
+  --bg-surface-hover: #efefec;
+  --bg-nav: #ffffff;
+  --bg-hero: #ffffff;
+  --bg-input: #ffffff;
+
+  --text-primary: #111214;
+  --text-secondary: #373a40;
+  --text-muted: #5c6068;
+  --text-subtle: #828790;
+
+  --border-subtle: #e2e3e0;
+  --border-strong: #c8cac5;
+
+  /* Crisp institutional accent (deep ink + amber/emerald data signals) */
+  --brand: #111214;
+  --brand-hover: #2b2e34;
+  --brand-soft: #ecece9;
+  --brand-border: #c8cac5;
+
+  --positive: #0a7a42;
+  --positive-bright: #0d9450;
+  --positive-soft: #e9f6ef;
+
+  --negative: #c62828;
+  --negative-bright: #dc2626;
+  --negative-soft: #fdeeee;
+
+  --warning: #b45309;
+  --warning-soft: #fef5e7;
+
+  --purple: #475569;
+  --cyan: #0f766e;
+
+  --shadow-sm: none;
+  --shadow-md: 0 1px 2px rgba(17, 18, 20, 0.06);
+  --shadow-lg: 0 8px 24px rgba(17, 18, 20, 0.12);
+
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+}
+
+[data-theme='dark'] {
+  /* Dark theme — pure neutral charcoal/obsidian (zero blue-purple AI tint) */
+  --bg-canvas: #0c0d0f;
+  --bg-surface: #131518;
+  --bg-surface-subtle: #181a1f;
+  --bg-surface-hover: #1f2228;
+  --bg-nav: #0f1114;
+  --bg-hero: #131518;
+  --bg-input: #0e1013;
+
+  --text-primary: #f1f2f4;
+  --text-secondary: #c2c6ce;
+  --text-muted: #8a909b;
+  --text-subtle: #606670;
+
+  --border-subtle: #23262c;
+  --border-strong: #343841;
+
+  /* Institutional amber-gold accent for dark terminal */
+  --brand: #e5a93c;
+  --brand-hover: #f0bc58;
+  --brand-soft: rgba(229, 169, 60, 0.12);
+  --brand-border: rgba(229, 169, 60, 0.34);
+
+  --positive: #26b86c;
+  --positive-bright: #2fd17d;
+  --positive-soft: rgba(38, 184, 108, 0.12);
+
+  --negative: #e55353;
+  --negative-bright: #f26464;
+  --negative-soft: rgba(229, 83, 83, 0.12);
+
+  --warning: #e5a93c;
+  --warning-soft: rgba(229, 169, 60, 0.14);
+
+  --purple: #9ca3af;
+  --cyan: #38b2ac;
+
+  --shadow-sm: none;
+  --shadow-md: 0 1px 3px rgba(0, 0, 0, 0.45);
+  --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.65);
+}
+
+/* Crisp typography & flat institutional surfaces */
+html, body {
+  font-feature-settings: "tnum" 0, "cv01" 1;
+  letter-spacing: -0.005em;
+}
+
+h1, h2, h3, .nav-brand, .section-title {
+  font-family: var(--font-display);
+  letter-spacing: -0.02em;
+}
+
+.navbar {
+  background: var(--bg-nav) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border-bottom: 1px solid var(--border-subtle) !important;
+  box-shadow: none !important;
+}
+
+.nav-brand-badge {
+  border-radius: 4px !important;
+  background: var(--text-primary) !important;
+  color: var(--bg-surface) !important;
+  box-shadow: none !important;
+}
+
+.nav-link {
+  border-radius: 4px !important;
+  font-size: 0.83rem !important;
+  font-weight: 500 !important;
+}
+
+.nav-link.active {
+  background: var(--brand-soft) !important;
+  color: var(--brand) !important;
+  font-weight: 600 !important;
+}
+
+.card,
+.panel,
+.kpi-card,
+.stat-card {
+  background: var(--bg-surface) !important;
+  background-image: none !important;
+  border: 1px solid var(--border-subtle) !important;
+  border-radius: var(--radius-md) !important;
+  box-shadow: none !important;
+}
+
+.card:hover {
+  border-color: var(--border-strong);
+}
+
+.btn {
+  border-radius: var(--radius-sm) !important;
+  box-shadow: none !important;
+  font-weight: 600 !important;
+  letter-spacing: -0.005em;
+}
+
+.btn-primary {
+  background: var(--brand) !important;
+  background-image: none !important;
+  color: var(--bg-surface) !important;
+  border: 1px solid var(--brand) !important;
+}
+
+[data-theme='dark'] .btn-primary {
+  color: #0c0d0f !important;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: var(--brand-hover) !important;
+  border-color: var(--brand-hover) !important;
+}
+
+.btn-ghost {
+  background: transparent !important;
+  border: 1px solid var(--border-subtle) !important;
+  color: var(--text-secondary) !important;
+}
+
+.btn-ghost:hover:not(:disabled) {
+  background: var(--bg-surface-hover) !important;
+  border-color: var(--border-strong) !important;
+  color: var(--text-primary) !important;
+}
+
+/* Replace overly rounded AI pills with crisp terminal tags */
+.chip-btn,
+.pf-pill,
+.pf-preview-chip,
+.badge,
+.tag,
+.nav-cmd-trigger {
+  border-radius: var(--radius-sm) !important;
+  box-shadow: none !important;
+}
+
+.field-input,
+input,
+select,
+textarea {
+  border-radius: var(--radius-sm) !important;
+  box-shadow: none !important;
+}
+
+/* Crisp financial tables */
+.data-table th {
+  font-size: 0.72rem !important;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted) !important;
+  background: var(--bg-surface-subtle) !important;
+  border-bottom: 1px solid var(--border-strong) !important;
+}
+
+.data-table td {
+  border-bottom: 1px solid var(--border-subtle) !important;
+}
+
+.data-table tbody tr:hover {
+  background: var(--bg-surface-hover) !important;
+}
+
+.num,
+.mono,
+.kpi-value {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.scroll-top-btn {
+  border-radius: var(--radius-sm) !important;
+  box-shadow: var(--shadow-md) !important;
+}
