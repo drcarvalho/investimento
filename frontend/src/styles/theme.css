@@ -1,89 +1,94 @@
 :root {
-  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  --font-display: 'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
+  --font-sans: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-display: 'Newsreader', Georgia, 'Times New Roman', serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, monospace;
 
-  /* Light theme (clean institutional surface) */
-  --bg-canvas: #f8fafc;
+  /* Light theme — warm editorial paper */
+  --bg-canvas: #f9f7f2;
   --bg-surface: #ffffff;
-  --bg-surface-subtle: #f8fafc;
-  --bg-surface-hover: #f1f5f9;
-  --bg-nav: rgba(255, 255, 255, 0.86);
+  --bg-surface-subtle: #f4f1ea;
+  --bg-surface-hover: #efeae0;
+  --bg-nav: #f9f7f2;
   --bg-hero: #ffffff;
   --bg-input: #ffffff;
 
-  --text-primary: #0f172a;
-  --text-secondary: #475569;
-  --text-muted: #64748b;
-  --text-subtle: #94a3b8;
+  --text-primary: #141413;
+  --text-secondary: #3b3a36;
+  --text-muted: #66635c;
+  --text-subtle: #8c887e;
 
-  --border-subtle: #e5e7eb;
-  --border-strong: #d1d5db;
+  --border-subtle: #e6e1d6;
+  --border-strong: #cfc8b8;
 
-  --brand: #2563eb;
-  --brand-hover: #1d4ed8;
-  --brand-soft: #eff6ff;
-  --brand-border: #bfdbfe;
+  /* Editorial forest-green accent */
+  --brand: #0f5132;
+  --brand-hover: #0b3d26;
+  --brand-soft: #eaf3ee;
+  --brand-border: #bfd9ca;
 
-  --positive: #059669;
-  --positive-bright: #10b981;
-  --positive-soft: #ecfdf5;
+  --positive: #0f6b3e;
+  --positive-bright: #15803d;
+  --positive-soft: #edf7f1;
 
-  --negative: #dc2626;
-  --negative-bright: #ef4444;
-  --negative-soft: #fef2f2;
+  --negative: #b42318;
+  --negative-bright: #dc2626;
+  --negative-soft: #fdf0ef;
 
-  --warning: #d97706;
-  --warning-soft: #fffbeb;
+  --warning: #a15c07;
+  --warning-soft: #fdf6e7;
 
-  --purple: #6366f1;
-  --cyan: #0284c7;
+  --purple: #57534e;
+  --cyan: #0f5132;
 
-  --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.03);
-  --shadow-md: 0 4px 12px rgba(15, 23, 42, 0.05), 0 1px 2px rgba(15, 23, 42, 0.03);
-  --shadow-lg: 0 10px 28px rgba(15, 23, 42, 0.07);
+  --shadow-sm: none;
+  --shadow-md: 0 2px 8px rgba(20, 20, 19, 0.05);
+  --shadow-lg: 0 10px 28px rgba(20, 20, 19, 0.1);
 
-  --radius-sm: 8px;
-  --radius-md: 12px;
-  --radius-lg: 16px;
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
 }
 
 [data-theme='dark'] {
-  --bg-canvas: #090d16;
-  --bg-surface: #101624;
-  --bg-surface-subtle: #151d2e;
-  --bg-surface-hover: #1b2538;
-  --bg-nav: rgba(9, 13, 22, 0.86);
-  --bg-hero: #101624;
-  --bg-input: #0d1320;
+  /* Dark theme — warm espresso charcoal */
+  --bg-canvas: #121210;
+  --bg-surface: #191815;
+  --bg-surface-subtle: #201f1b;
+  --bg-surface-hover: #282621;
+  --bg-nav: #121210;
+  --bg-hero: #191815;
+  --bg-input: #151411;
 
-  --text-primary: #f8fafc;
-  --text-secondary: #cbd5e1;
-  --text-muted: #94a3b8;
-  --text-subtle: #64748b;
+  --text-primary: #f3f1ec;
+  --text-secondary: #cac6bc;
+  --text-muted: #969186;
+  --text-subtle: #6e6a61;
 
-  --border-subtle: rgba(148, 163, 184, 0.14);
-  --border-strong: rgba(148, 163, 184, 0.26);
+  --border-subtle: #2b2924;
+  --border-strong: #3d3a33;
 
-  --brand: #3b82f6;
-  --brand-hover: #60a5fa;
-  --brand-soft: rgba(59, 130, 246, 0.14);
-  --brand-border: rgba(59, 130, 246, 0.35);
+  --brand: #34a86e;
+  --brand-hover: #46bd80;
+  --brand-soft: rgba(52, 168, 110, 0.14);
+  --brand-border: rgba(52, 168, 110, 0.34);
 
-  --positive: #34d399;
-  --positive-bright: #10b981;
-  --positive-soft: rgba(16, 185, 129, 0.16);
+  --positive: #34a86e;
+  --positive-bright: #46bd80;
+  --positive-soft: rgba(52, 168, 110, 0.14);
 
-  --negative: #fb7185;
-  --negative-bright: #f43f5e;
-  --negative-soft: rgba(244, 63, 94, 0.16);
+  --negative: #e05d55;
+  --negative-bright: #ef6c64;
+  --negative-soft: rgba(224, 93, 85, 0.14);
 
-  --warning: #fbbf24;
-  --warning-soft: rgba(245, 158, 11, 0.16);
+  --warning: #d99b38;
+  --warning-soft: rgba(217, 155, 56, 0.14);
 
-  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
-  --shadow-md: 0 6px 20px rgba(0, 0, 0, 0.35);
-  --shadow-lg: 0 16px 40px rgba(0, 0, 0, 0.55);
+  --purple: #a8a29e;
+  --cyan: #34a86e;
+
+  --shadow-sm: none;
+  --shadow-md: 0 2px 10px rgba(0, 0, 0, 0.35);
+  --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.55);
 }
 
 *, *::before, *::after {
@@ -2230,164 +2235,57 @@ textarea:focus-visible,
   flex-wrap: wrap;
 }
 
-/* ==========================================================================
-   PORTAL EDITORIAL MINIMALISTA (Financial Times / Investidor10 Limpo)
-   Warm paper canvas (#f9f7f2), Newsreader serif headings, IBM Plex Sans/Mono,
-   crisp 1px editorial hairlines, generous whitespace, zero AI gradients/glows.
-   ========================================================================== */
-:root {
-  --font-sans: 'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  --font-display: 'Newsreader', Georgia, 'Times New Roman', serif;
-  --font-mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, monospace;
-
-  /* Light theme — warm editorial paper */
-  --bg-canvas: #f9f7f2;
-  --bg-surface: #ffffff;
-  --bg-surface-subtle: #f4f1ea;
-  --bg-surface-hover: #efeae0;
-  --bg-nav: #f9f7f2;
-  --bg-hero: #ffffff;
-  --bg-input: #ffffff;
-
-  --text-primary: #141413;
-  --text-secondary: #3b3a36;
-  --text-muted: #66635c;
-  --text-subtle: #8c887e;
-
-  --border-subtle: #e6e1d6;
-  --border-strong: #cfc8b8;
-
-  /* Editorial forest-green accent */
-  --brand: #0f5132;
-  --brand-hover: #0b3d26;
-  --brand-soft: #eaf3ee;
-  --brand-border: #bfd9ca;
-
-  --positive: #0f6b3e;
-  --positive-bright: #15803d;
-  --positive-soft: #edf7f1;
-
-  --negative: #b42318;
-  --negative-bright: #dc2626;
-  --negative-soft: #fdf0ef;
-
-  --warning: #a15c07;
-  --warning-soft: #fdf6e7;
-
-  --purple: #57534e;
-  --cyan: #0f5132;
-
-  --shadow-sm: none;
-  --shadow-md: 0 2px 8px rgba(20, 20, 19, 0.05);
-  --shadow-lg: 0 10px 28px rgba(20, 20, 19, 0.1);
-
-  --radius-sm: 4px;
-  --radius-md: 6px;
-  --radius-lg: 8px;
-}
-
-[data-theme='dark'] {
-  /* Dark theme — warm espresso charcoal */
-  --bg-canvas: #121210;
-  --bg-surface: #191815;
-  --bg-surface-subtle: #201f1b;
-  --bg-surface-hover: #282621;
-  --bg-nav: #121210;
-  --bg-hero: #191815;
-  --bg-input: #151411;
-
-  --text-primary: #f3f1ec;
-  --text-secondary: #cac6bc;
-  --text-muted: #969186;
-  --text-subtle: #6e6a61;
-
-  --border-subtle: #2b2924;
-  --border-strong: #3d3a33;
-
-  --brand: #34a86e;
-  --brand-hover: #46bd80;
-  --brand-soft: rgba(52, 168, 110, 0.14);
-  --brand-border: rgba(52, 168, 110, 0.34);
-
-  --positive: #34a86e;
-  --positive-bright: #46bd80;
-  --positive-soft: rgba(52, 168, 110, 0.14);
-
-  --negative: #e05d55;
-  --negative-bright: #ef6c64;
-  --negative-soft: rgba(224, 93, 85, 0.14);
-
-  --warning: #d99b38;
-  --warning-soft: rgba(217, 155, 56, 0.14);
-
-  --purple: #a8a29e;
-  --cyan: #34a86e;
-
-  --shadow-sm: none;
-  --shadow-md: 0 2px 10px rgba(0, 0, 0, 0.35);
-  --shadow-lg: 0 12px 32px rgba(0, 0, 0, 0.55);
-}
-
-/* Editorial Typography */
-html, body {
-  background: var(--bg-canvas);
-  color: var(--text-primary);
-  font-family: var(--font-sans);
-  line-height: 1.55;
-}
-
+/* === Portal Editorial Minimalista (Consolidated, Zero !important) === */
 h1, h2, h3, .nav-brand, .section-title {
   font-family: var(--font-display);
   font-weight: 600;
   letter-spacing: -0.015em;
 }
 
-/* Editorial Masthead Navbar */
 .navbar {
-  background: var(--bg-nav) !important;
-  backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
-  border-bottom: 1px solid var(--border-strong) !important;
-  box-shadow: none !important;
+  background: var(--bg-nav);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  border-bottom: 1px solid var(--border-strong);
+  box-shadow: none;
 }
 
 .nav-brand {
-  font-size: 1.18rem !important;
-  letter-spacing: -0.02em !important;
+  font-size: 1.18rem;
+  letter-spacing: -0.02em;
 }
 
 .nav-brand-badge {
-  border-radius: 4px !important;
-  background: var(--text-primary) !important;
-  color: var(--bg-canvas) !important;
-  box-shadow: none !important;
+  border-radius: 4px;
+  background: var(--text-primary);
+  color: var(--bg-canvas);
+  box-shadow: none;
 }
 
 .nav-link {
-  border-radius: 0 !important;
-  font-size: 0.84rem !important;
-  font-weight: 500 !important;
+  border-radius: 0;
+  font-size: 0.84rem;
+  font-weight: 500;
   border-bottom: 2px solid transparent;
-  padding-bottom: 0.45rem !important;
+  padding-bottom: 0.45rem;
 }
 
 .nav-link:hover {
-  background: transparent !important;
-  color: var(--text-primary) !important;
+  background: transparent;
+  color: var(--text-primary);
   border-bottom-color: var(--border-strong);
 }
 
 .nav-link.active {
-  background: transparent !important;
-  color: var(--brand) !important;
-  border-bottom-color: var(--brand) !important;
-  font-weight: 600 !important;
+  background: transparent;
+  color: var(--brand);
+  border-bottom-color: var(--brand);
+  font-weight: 600;
 }
 
-/* Editorial Topbar on Home */
 .editorial-topbar {
-  padding-bottom: 1rem !important;
-  margin-bottom: 1.15rem !important;
+  padding-bottom: 1rem;
+  margin-bottom: 1.15rem;
   border-bottom: 1px solid var(--border-subtle);
 }
 
@@ -2406,57 +2304,55 @@ h1, h2, h3, .nav-brand, .section-title {
   border-radius: 3px;
 }
 
-/* Clean Editorial Surfaces — crisp 1px rules, zero decorative shadows */
 .card,
 .panel,
 .kpi-card,
 .stat-card,
 .spotlight-card,
 .portal-summary-strip {
-  background: var(--bg-surface) !important;
-  background-image: none !important;
-  border: 1px solid var(--border-subtle) !important;
-  border-radius: var(--radius-md) !important;
-  box-shadow: none !important;
+  background: var(--bg-surface);
+  background-image: none;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  box-shadow: none;
 }
 
 .portal-summary-strip {
-  margin-bottom: 1.35rem !important;
+  margin-bottom: 1.35rem;
 }
 
-/* Buttons & Controls */
 .btn {
-  border-radius: var(--radius-sm) !important;
-  box-shadow: none !important;
-  font-weight: 600 !important;
+  border-radius: var(--radius-sm);
+  box-shadow: none;
+  font-weight: 600;
 }
 
 .btn-primary {
-  background: var(--brand) !important;
-  background-image: none !important;
-  color: #ffffff !important;
-  border: 1px solid var(--brand) !important;
+  background: var(--brand);
+  background-image: none;
+  color: #ffffff;
+  border: 1px solid var(--brand);
 }
 
 [data-theme='dark'] .btn-primary {
-  color: #0e1410 !important;
+  color: #0e1410;
 }
 
 .btn-primary:hover:not(:disabled) {
-  background: var(--brand-hover) !important;
-  border-color: var(--brand-hover) !important;
+  background: var(--brand-hover);
+  border-color: var(--brand-hover);
 }
 
 .btn-ghost {
-  background: var(--bg-surface) !important;
-  border: 1px solid var(--border-subtle) !important;
-  color: var(--text-secondary) !important;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
 }
 
 .btn-ghost:hover:not(:disabled) {
-  background: var(--bg-surface-hover) !important;
-  border-color: var(--border-strong) !important;
-  color: var(--text-primary) !important;
+  background: var(--bg-surface-hover);
+  border-color: var(--border-strong);
+  color: var(--text-primary);
 }
 
 .chip-btn,
@@ -2466,34 +2362,33 @@ h1, h2, h3, .nav-brand, .section-title {
 .tag,
 .pill,
 .nav-cmd-trigger {
-  border-radius: 3px !important;
-  box-shadow: none !important;
+  border-radius: 3px;
+  box-shadow: none;
 }
 
 .field-input,
 input,
 select,
 textarea {
-  border-radius: var(--radius-sm) !important;
-  box-shadow: none !important;
+  border-radius: var(--radius-sm);
+  box-shadow: none;
 }
 
-/* Editorial Tables */
 .data-table th {
-  font-size: 0.71rem !important;
+  font-size: 0.71rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: var(--text-muted) !important;
-  background: var(--bg-surface-subtle) !important;
-  border-bottom: 1px solid var(--border-strong) !important;
+  color: var(--text-muted);
+  background: var(--bg-surface-subtle);
+  border-bottom: 1px solid var(--border-strong);
 }
 
 .data-table td {
-  border-bottom: 1px solid var(--border-subtle) !important;
+  border-bottom: 1px solid var(--border-subtle);
 }
 
 .data-table tbody tr:hover {
-  background: var(--bg-surface-hover) !important;
+  background: var(--bg-surface-hover);
 }
 
 .num,
@@ -2504,37 +2399,36 @@ textarea {
 }
 
 .scroll-top-btn {
-  border-radius: var(--radius-sm) !important;
-  box-shadow: var(--shadow-md) !important;
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-md);
 }
 
-/* === Editorial Polish v2: Page Rhythm, Eyebrows & Accessible Focus === */
 .page-eyebrow {
   display: inline-block;
   font-family: var(--font-mono);
-  font-size: 0.68rem !important;
-  font-weight: 600 !important;
+  font-size: 0.68rem;
+  font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.08em !important;
-  color: var(--brand) !important;
+  letter-spacing: 0.08em;
+  color: var(--brand);
   margin-bottom: 0.3rem;
 }
 
 .app-main {
-  padding-top: 1.5rem !important;
-  padding-bottom: 3rem !important;
+  padding-top: 1.5rem;
+  padding-bottom: 3rem;
 }
 
 .app-main h1 {
-  font-size: clamp(1.55rem, 2.4vw, 2rem) !important;
-  line-height: 1.18 !important;
-  letter-spacing: -0.02em !important;
+  font-size: clamp(1.55rem, 2.4vw, 2rem);
+  line-height: 1.18;
+  letter-spacing: -0.02em;
 }
 
 .app-footer {
-  border-top: 1px solid var(--border-strong) !important;
-  background: var(--bg-canvas) !important;
-  font-size: 0.78rem !important;
+  border-top: 1px solid var(--border-strong);
+  background: var(--bg-canvas);
+  font-size: 0.78rem;
 }
 
 a:focus-visible,
@@ -2542,8 +2436,52 @@ button:focus-visible,
 input:focus-visible,
 select:focus-visible,
 textarea:focus-visible {
-  outline: 2px solid var(--brand) !important;
+  outline: 2px solid var(--brand);
   outline-offset: 2px;
+}
+
+/* Portfolio Monthly Dividend Projection & CSV Import Panel */
+.pf-monthly-bars {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: 0.45rem;
+  align-items: end;
+  height: 112px;
+  padding-top: 0.5rem;
+}
+
+.pf-month-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3rem;
+  height: 100%;
+  justify-content: flex-end;
+}
+
+.pf-month-bar {
+  width: 100%;
+  max-width: 28px;
+  background: var(--brand);
+  border-radius: 3px 3px 0 0;
+  opacity: 0.85;
+  transition: opacity 0.15s ease;
+}
+
+.pf-month-bar:hover {
+  opacity: 1;
+}
+
+.pf-month-label {
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  color: var(--text-muted);
+}
+
+.pf-import-box {
+  padding: 1.15rem 1.25rem;
+  margin-bottom: 1.25rem;
+  border-left: 3px solid var(--brand);
 }
 
 /* === Print / PDF Export Styles === */

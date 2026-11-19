@@ -4,6 +4,7 @@ import IndicatorCard from '../components/IndicatorCard';
 import ViabilityBadge, { getViabilityColor } from '../components/ViabilityBadge';
 import PriceChart from '../components/PriceChart';
 import DividendsPanel from '../components/DividendsPanel';
+import CorporateEventsPanel from '../components/CorporateEventsPanel';
 import { DividendSimulator, StudyNotes } from '../components/StudyTools';
 import { showToast } from '../components/Toast';
 import {
@@ -350,6 +351,7 @@ function StockDetail() {
     { key: 'indicadores', label: 'Indicadores', icon: <BarChartIcon size={15} /> },
     { key: 'dividendos', label: 'Dividendos', icon: <CheckCircleIcon size={15} /> },
     { key: 'simulador', label: 'Simulador', icon: <CalculatorIcon size={15} /> },
+    { key: 'eventos', label: 'Comunicados CVM', icon: <InfoIcon size={15} /> },
     { key: 'tese', label: 'Caderno de Tese', icon: <BookOpenIcon size={15} /> },
   ];
 
@@ -784,6 +786,13 @@ function StockDetail() {
             price={stock.price}
             dividendYield={v.dividendYield}
           />
+        </div>
+      )}
+
+      {/* TAB 4B: Comunicados Oficiais CVM */}
+      {activeTab === 'eventos' && (
+        <div id="panel-eventos" role="tabpanel" aria-labelledby="tab-eventos" className="tab-panel-animate">
+          <CorporateEventsPanel symbol={stock.symbol} />
         </div>
       )}
 

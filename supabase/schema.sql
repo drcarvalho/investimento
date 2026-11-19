@@ -158,3 +158,16 @@ CREATE INDEX IF NOT EXISTS idx_assets_sector ON assets (sector);
 CREATE INDEX IF NOT EXISTS idx_assets_type ON assets (asset_type);
 CREATE INDEX IF NOT EXISTS idx_quant_rankings_score ON quant_rankings (score DESC);
 CREATE INDEX IF NOT EXISTS idx_bot_recommendations_date_symbol ON bot_recommendations (run_date DESC, symbol);
+
+CREATE TABLE IF NOT EXISTS corporate_events (
+  symbol TEXT NOT NULL,
+  event_date TEXT NOT NULL,
+  category TEXT NOT NULL,
+  subject TEXT NOT NULL,
+  link TEXT,
+  source TEXT DEFAULT 'CVM IPE',
+  updated_at TEXT,
+  PRIMARY KEY (symbol, event_date, category, subject)
+);
+
+CREATE INDEX IF NOT EXISTS idx_corporate_events_symbol_date ON corporate_events (symbol, event_date DESC);

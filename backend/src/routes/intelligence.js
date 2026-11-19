@@ -5,7 +5,7 @@ const { execFile } = require('child_process');
 const router = express.Router();
 const db = require('../models/db');
 const staticIndicators = require('../data/indicators-static.json');
-const { getFullStockList } = require('../services/brapi');
+const { getFullStockList, getFundsList } = require('../services/brapi');
 const { normalizeTicker } = require('../utils/validation');
 const { timingSafeEqualStr, isLoopbackIp } = require('../middleware/security');
 
@@ -281,6 +281,159 @@ router.get('/rankings', async (req, res) => {
   } catch (err) {
     console.error('Error fetching quant rankings:', err.message);
     res.status(500).json({ error: 'Falha ao carregar ranking quantitativo' });
+  }
+});
+
+// GET /api/intelligence/fii-rankings — Transparent quantitative ranking for B3 FIIs (CVM + live B3)
+router.get('/fii-rankings', async (req, res) => {
+  try {
+    const [liveFiis, dbFiis, dbFunds, selicRow] = await Promise.all([
+      getFundsList('fii', 80).catch(() => []),
+      db.allAsync("SELECT symbol, name, sector, logo, price, change_pct, volume, market_cap FROM assets WHERE asset_type = 'fii'").catch(() => []),
+      db.allAsync('SELECT symbol, pvp, dy, patrimonio_liquido, source, reference_date, updated_at FROM fundamentals').catch(() => []),
+      db.getAsync("SELECT value FROM macro_indicators WHERE key = 'selic'").catch(() => null),
+    ]);
+
+    const selic = selicRow && Number.isFinite(Number(selicRow.value)) ? Number(selicRow.value) : null;
+    const fundMap = new Map(dbFunds.map((f) => [String(f.symbol).toUpperCase(), f]));
+    const dbAssetMap = new Map(dbFiis.map((a) => [String(a.symbol).toUpperCase(), a]));
+
+    const combinedMap = new Map();
+    for (const a of dbFiis) {
+      const sym = String(a.symbol).toUpperCase();
+      combinedMap.set(sym, {
+        symbol: sym,
+        name: a.name || sym,
+        sector: a.sector || 'Fundos Imobiliários',
+        logo: a.logo || `https://icons.brapi.dev/icons/${sym}.svg`,
+        price: a.price ?? null,
+        change: a.change_pct ?? null,
+        volume: a.volume ?? null,
+        marketCap: a.market_cap ?? null,
+      });
+    }
+    for (const f of liveFiis) {
+      const sym = String(f.symbol).toUpperCase();
+      const prev = combinedMap.get(sym) || {};
+      combinedMap.set(sym, {
+        symbol: sym,
+        name: f.name || prev.name || sym,
+        sector: prev.sector && prev.sector !== 'Fundos Imobiliários' ? prev.sector : (f.sector || 'Fundos Imobiliários'),
+        logo: f.logo || prev.logo || `https://icons.brapi.dev/icons/${sym}.svg`,
+        price: f.price ?? prev.price ?? null,
+        change: f.change ?? prev.change ?? null,
+        volume: f.volume ?? prev.volume ?? null,
+        marketCap: f.marketCap ?? prev.marketCap ?? null,
+      });
+    }
+
+    const rankings = [];
+    for (const item of combinedMap.values()) {
+      const f = fundMap.get(item.symbol);
+      const pvp = f?.pvp ?? null;
+      const dy = f?.dy ?? null;
+      const netWorth = f?.patrimonio_liquido ?? item.marketCap ?? null;
+      if (pvp == null && dy == null && !item.volume) continue;
+
+      const positives = [];
+      const risks = [];
+      const deteriorationFlags = [];
+
+      // 1. P/VP (max 40)
+      let pvpScore = 16;
+      if (pvp != null) {
+        if (pvp <= 0) {
+          pvpScore = 0;
+          deteriorationFlags.push(`P/VP inválido (${pvp.toFixed(2)}x)`);
+        } else if (pvp <= 0.92) {
+          pvpScore = 40;
+          positives.push(`Desconto patrimonial relevante (P/VP ${pvp.toFixed(2)}x)`);
+        } else if (pvp <= 1.03) {
+          pvpScore = 32;
+          positives.push(`Próximo ao valor patrimonial (P/VP ${pvp.toFixed(2)}x)`);
+        } else if (pvp <= 1.15) {
+          pvpScore = 20;
+        } else {
+          pvpScore = 8;
+          risks.push(`Ágio elevado sobre o patrimônio (P/VP ${pvp.toFixed(2)}x)`);
+        }
+      }
+
+      // 2. Dividend Yield (max 45)
+      let dyScore = 15;
+      if (dy != null) {
+        if (dy >= 11) {
+          dyScore = 45;
+          positives.push(`Rendimento robusto (${dy.toFixed(2)}% a.a.)`);
+        } else if (dy >= 8.5) {
+          dyScore = 36;
+          positives.push(`DY consistente (${dy.toFixed(2)}% a.a.)`);
+        } else if (dy >= 6) {
+          dyScore = 22;
+        } else if (dy > 0) {
+          dyScore = 10;
+          risks.push(`DY abaixo da média de FIIs (${dy.toFixed(2)}% a.a.)`);
+        } else {
+          dyScore = 0;
+          deteriorationFlags.push('Sem distribuição recente de rendimentos');
+        }
+        if (selic != null && dy >= selic * 0.85) {
+          positives.push(`Rendimento isento competitivo frente à Selic (${selic.toFixed(2)}%)`);
+        }
+      }
+
+      // 3. Liquidez & Porte (max 15)
+      let liqScore = 8;
+      if ((netWorth != null && netWorth >= 500_000_000) || (item.volume != null && item.volume >= 1_000_000)) {
+        liqScore = 15;
+        positives.push('Boa liquidez / porte patrimonial');
+      } else if (item.volume != null && item.volume < 100_000) {
+        liqScore = 4;
+        risks.push('Liquidez diária reduzida');
+      }
+
+      const score = Number(Math.min(100, pvpScore + dyScore + liqScore).toFixed(1));
+      const classification =
+        pvp == null && dy == null
+          ? 'Sem Fundamentos CVM'
+          : score >= 76 && deteriorationFlags.length === 0
+            ? 'Oportunidade Forte'
+            : score >= 60 && deteriorationFlags.length === 0
+              ? 'Fundamentos Sólidos'
+              : score >= 42
+                ? 'Neutro / Acompanhar'
+                : 'Atenção / Risco Elevado';
+
+      rankings.push({
+        ...item,
+        score,
+        classification,
+        breakdown: { pvp: pvpScore, dy: dyScore, liquidity: liqScore },
+        metrics: { pvp, dy, patrimonioLiquido: netWorth, volume: item.volume },
+        positives: positives.slice(0, 4),
+        risks: risks.slice(0, 4),
+        deteriorationFlags,
+        source: f?.source || 'B3 ao vivo',
+        referenceDate: f?.reference_date || null,
+        updatedAt: f?.updated_at || new Date().toISOString(),
+      });
+    }
+
+    rankings.sort((a, b) => b.score - a.score || (b.metrics.dy ?? -1) - (a.metrics.dy ?? -1));
+    const segments = [...new Set(rankings.map((r) => r.sector))].sort();
+
+    res.json({
+      count: rankings.length,
+      segments,
+      selicRef: selic,
+      updatedAt: rankings[0]?.updatedAt || new Date().toISOString(),
+      disclaimer:
+        'Ranking informativo de FIIs baseado em P/VP (40 pts), Dividend Yield oficial CVM (45 pts) e liquidez/porte (15 pts). Não constitui recomendação de compra ou venda.',
+      rankings: rankings.slice(0, 60),
+    });
+  } catch (err) {
+    console.error('Error fetching FII quant rankings:', err.message);
+    res.status(500).json({ error: 'Falha ao carregar ranking de FIIs' });
   }
 });
 

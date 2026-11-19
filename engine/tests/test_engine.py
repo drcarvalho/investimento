@@ -253,6 +253,53 @@ class EngineTests(unittest.TestCase):
                 conn.close()
 
 
+
+    def test_cvm_events_collector_and_fii_ranking_pipeline(self):
+        import io, zipfile
+        from engine.analyzer import run_fii_quantitative_analysis
+        from engine.collectors.cvm_events_collector import _parse_and_persist_ipe
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            conn = get_connection(Path(tmpdir) / "v5.db")
+            try:
+                # 1. Test CVM IPE corporate events parsing & filtering
+                buf = io.BytesIO()
+                with zipfile.ZipFile(buf, "w") as zf:
+                    ipe_csv = (
+                        "CNPJ_Companhia;Categoria;Tipo;Assunto;Data_Entrega;Link_Download\n"
+                        "33.000.167/0001-01;Fato Relevante;;Distribuição de dividendos extraordinários;2026-10-15;https://www.rad.cvm.gov.br/doc/1\n"
+                        "33.000.167/0001-01;Formulário Cadastral;;Atualização cadastral irrelevante;2026-10-10;https://www.rad.cvm.gov.br/doc/2\n"
+                        "33.000.167/0001-01;Comunicado ao Mercado;;Plano estratégico 2026-2030;2026-10-01;javascript:alert(1)\n"
+                    )
+                    zf.writestr("ipe_cia_aberta_2026.csv", ipe_csv.encode("latin-1"))
+                inserted = _parse_and_persist_ipe(conn, buf.getvalue(), 2026)
+                self.assertEqual(inserted, 2)
+                events = conn.execute("SELECT * FROM corporate_events WHERE symbol = 'PETR4' ORDER BY event_date DESC").fetchall()
+                self.assertEqual(len(events), 2)
+                self.assertEqual(events[0]["category"], "Fato Relevante")
+                self.assertEqual(events[0]["link"], "https://www.rad.cvm.gov.br/doc/1")
+                # Unsafe javascript: URL must be rejected
+                self.assertIsNone(events[1]["link"])
+
+                # 2. Test FII quantitative ranking pipeline
+                conn.execute(
+                    "INSERT INTO macro_indicators (key, name, value, unit, ref_date, source, updated_at) VALUES ('selic', 'Meta Selic', 10.5, '% a.a.', '2026-10-01', 'BCB', '2026-10-01')"
+                )
+                conn.execute(
+                    "INSERT INTO assets (symbol, name, asset_type, sector, price, volume, market_cap) VALUES ('HGLG11', 'CSHG Logística', 'fii', 'Logística', 155.0, 4000000, 5000000000)"
+                )
+                conn.execute(
+                    "INSERT INTO fundamentals (symbol, pvp, dy, patrimonio_liquido, source) VALUES ('HGLG11', 0.91, 11.4, 5200000000, 'CVM FII 2026')"
+                )
+                conn.commit()
+                fii_ranks = run_fii_quantitative_analysis(conn)
+                self.assertEqual(len(fii_ranks), 1)
+                self.assertEqual(fii_ranks[0]["symbol"], "HGLG11")
+                self.assertEqual(fii_ranks[0]["score"], 100.0)
+            finally:
+                conn.close()
+
+
 if __name__ == "__main__":
     unittest.main()
 

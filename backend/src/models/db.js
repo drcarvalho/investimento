@@ -191,7 +191,18 @@ const PG_SCHEMA_STATEMENTS = [
   'CREATE INDEX IF NOT EXISTS idx_assets_type_sector ON assets(asset_type, sector)',
   'CREATE INDEX IF NOT EXISTS idx_bot_recs_date_score ON bot_recommendations(run_date DESC, score DESC)',
   'CREATE INDEX IF NOT EXISTS idx_dividends_symbol_date ON dividends(symbol, pay_date DESC)',
+  `CREATE TABLE IF NOT EXISTS corporate_events (
+    symbol TEXT NOT NULL,
+    event_date TEXT NOT NULL,
+    category TEXT NOT NULL,
+    subject TEXT NOT NULL,
+    link TEXT,
+    source TEXT DEFAULT 'CVM IPE',
+    updated_at TEXT,
+    PRIMARY KEY (symbol, event_date, category, subject)
+  )`,
   'CREATE INDEX IF NOT EXISTS idx_quant_rankings_score ON quant_rankings(score DESC)',
+  'CREATE INDEX IF NOT EXISTS idx_corporate_events_symbol_date ON corporate_events(symbol, event_date DESC)',
 ];
 
 function createPostgresDb(rawConnectionString) {
@@ -531,7 +542,19 @@ function createSqliteDb() {
         db.run('CREATE INDEX IF NOT EXISTS idx_assets_type_sector ON assets(asset_type, sector);');
         db.run('CREATE INDEX IF NOT EXISTS idx_bot_recs_date_score ON bot_recommendations(run_date DESC, score DESC);');
         db.run('CREATE INDEX IF NOT EXISTS idx_dividends_symbol_date ON dividends(symbol, pay_date DESC);');
+        db.run(`CREATE TABLE IF NOT EXISTS corporate_events (
+          symbol TEXT NOT NULL,
+          event_date TEXT NOT NULL,
+          category TEXT NOT NULL,
+          subject TEXT NOT NULL,
+          link TEXT,
+          source TEXT DEFAULT 'CVM IPE',
+          updated_at TEXT,
+          PRIMARY KEY (symbol, event_date, category, subject)
+        );`);
+
         db.run('CREATE INDEX IF NOT EXISTS idx_quant_rankings_score ON quant_rankings(score DESC);');
+        db.run('CREATE INDEX IF NOT EXISTS idx_corporate_events_symbol_date ON corporate_events(symbol, event_date DESC);');
 
         db.run(
           `INSERT OR IGNORE INTO watchlists (id, name, created_at) VALUES (1, 'Minha Lista Principal', ?)`,

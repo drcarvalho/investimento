@@ -166,5 +166,37 @@ router.get('/assets/:symbol/dividends', async (req, res) => {
   }
 });
 
+// GET /api/assets/:symbol/events — Official CVM IPE Fatos Relevantes & Comunicados
+router.get('/assets/:symbol/events', async (req, res) => {
+  try {
+    const symbol = normalizeTicker(req.params.symbol);
+    if (!symbol) return res.status(400).json({ error: 'Ticker inválido' });
+
+    const rows = await db.allAsync(
+      `SELECT symbol, event_date, category, subject, link, source, updated_at
+       FROM corporate_events
+       WHERE symbol = ?
+       ORDER BY event_date DESC
+       LIMIT 30`,
+      [symbol]
+    );
+
+    res.json({
+      symbol,
+      count: rows.length,
+      events: rows.map((r) => ({
+        date: r.event_date,
+        category: r.category,
+        subject: r.subject,
+        link: r.link || null,
+        source: r.source || 'CVM IPE',
+      })),
+    });
+  } catch (err) {
+    console.error('Error loading corporate events:', err.message);
+    res.status(500).json({ error: 'Falha ao consultar comunicados oficiais da CVM' });
+  }
+});
+
 module.exports = router;
 

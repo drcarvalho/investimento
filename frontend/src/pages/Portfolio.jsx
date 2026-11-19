@@ -105,6 +105,10 @@ function Portfolio() {
   const [searchTerm, setSearchTerm] = React.useState('');
   const [typeFilter, setTypeFilter] = React.useState('all');
   const [sortBy, setSortBy] = React.useState('value_desc');
+  const [selicRate, setSelicRate] = React.useState(null);
+  const [importOpen, setImportOpen] = React.useState(false);
+  const [csvText, setCsvText] = React.useState('');
+  const [importing, setImporting] = React.useState(false);
 
   const toggleHideValues = () => {
     setHideValues((prev) => {
@@ -142,7 +146,86 @@ function Portfolio() {
 
   React.useEffect(() => {
     loadPortfolio();
+    apiFetch('/api/macro')
+      .then((m) => {
+        const selicItem = (m?.indicators || []).find((i) => i.key === 'selic');
+        if (selicItem && Number.isFinite(Number(selicItem.value))) {
+          setSelicRate(Number(selicItem.value));
+        }
+      })
+      .catch(() => {});
   }, [loadPortfolio]);
+
+  const parsedCsvRows = React.useMemo(() => {
+    if (!csvText.trim()) return [];
+    const lines = csvText.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+    const out = [];
+    for (const line of lines) {
+      const sep = line.includes(';') ? ';' : line.includes('\t') ? '\t' : ',';
+      const cols = line.split(sep).map((c) => c.replace(/^["']|["']$/g, '').trim());
+      if (cols.length < 3) continue;
+      // Find first valid ticker column (supports both "PETR4;100;34.50" and B3 export rows)
+      let foundSym = null;
+      let foundIdx = -1;
+      for (let i = 0; i < cols.length; i += 1) {
+        const candidate = sanitizeTicker(cols[i].replace(/F$/i, ''));
+        if (candidate && /^[A-Z]{4}\d{1,2}$/.test(candidate)) {
+          foundSym = candidate;
+          foundIdx = i;
+          break;
+        }
+      }
+      if (!foundSym) continue;
+      const numericCols = cols
+        .slice(foundIdx + 1)
+        .map((c) => {
+          const clean = c.replace(/R\$/gi, '').replace(/\s/g, '').replace(/\.(?=\d{3}(?:,|\.|$))/g, '').replace(',', '.');
+          const n = Number(clean);
+          return Number.isFinite(n) && n > 0 ? n : null;
+        })
+        .filter((n) => n !== null);
+      if (numericCols.length < 2) continue;
+      const qty = Math.round(numericCols[0]);
+      const avg = numericCols[1];
+      if (qty > 0 && avg > 0) {
+        out.push({ symbol: foundSym, quantity: qty, avg_price: Number(avg.toFixed(4)) });
+      }
+    }
+    return out.slice(0, 50);
+  }, [csvText]);
+
+  const handleImportFile = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => setCsvText(String(reader.result || ''));
+    reader.readAsText(file, 'utf-8');
+  };
+
+  const handleRunImport = async () => {
+    if (parsedCsvRows.length === 0) return;
+    setImporting(true);
+    let ok = 0;
+    for (const item of parsedCsvRows) {
+      try {
+        await apiFetch('/api/investments', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(item),
+        });
+        ok += 1;
+      } catch {}
+    }
+    setImporting(false);
+    if (ok > 0) {
+      showToast(`${ok} posição(ões) importada(s) para sua carteira.`, 'success');
+      setCsvText('');
+      setImportOpen(false);
+      loadPortfolio();
+    } else {
+      showToast('Não foi possível importar as posições. Verifique o formato CSV.', 'error');
+    }
+  };
 
   const handleAdd = async (e) => {
     e.preventDefault();
@@ -289,6 +372,14 @@ function Portfolio() {
             </button>
           )}
           <button
+            type="button"
+            className="btn btn-ghost no-print"
+            onClick={() => setImportOpen((v) => !v)}
+            style={{ fontSize: '0.8rem' }}
+          >
+            {importOpen ? 'Fechar Importação' : 'Importar CSV B3'}
+          </button>
+          <button
             className="btn btn-ghost"
             onClick={exportCsv}
             disabled={positions.length === 0}
@@ -393,6 +484,49 @@ function Portfolio() {
         </div>
       </div>
 
+      {/* CSV B3 / Spreadsheet Batch Import */}
+      {importOpen && (
+        <div className="card pf-import-box no-print">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap', marginBottom: '0.65rem' }}>
+            <div>
+              <strong style={{ fontSize: '0.92rem', color: 'var(--text-primary)' }}>
+                Importar Posições via CSV (B3 ou Planilha)
+              </strong>
+              <div style={{ fontSize: '0.76rem', color: 'var(--text-muted)' }}>
+                Envie um arquivo <code>.csv</code> ou cole linhas no formato <code>TICKER;QUANTIDADE;PRECO_MEDIO</code> (ex.: <code>PETR4;100;34,50</code>).
+              </div>
+            </div>
+            <label className="btn btn-ghost" style={{ fontSize: '0.78rem', cursor: 'pointer' }}>
+              Escolher arquivo CSV
+              <input type="file" accept=".csv,.txt" onChange={handleImportFile} style={{ display: 'none' }} />
+            </label>
+          </div>
+          <textarea
+            className="field-input mono"
+            rows={4}
+            value={csvText}
+            onChange={(e) => setCsvText(e.target.value)}
+            placeholder={"PETR4;100;34,50\nITUB4;200;31,20\nMXRF11;150;10,15"}
+            style={{ width: '100%', fontSize: '0.8rem', padding: '0.6rem', marginBottom: '0.75rem' }}
+          />
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.6rem' }}>
+            <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+              {parsedCsvRows.length > 0
+                ? `${parsedCsvRows.length} linha(s) válida(s) pronta(s) para importar.`
+                : 'Nenhuma linha válida detectada ainda.'}
+            </span>
+            <button
+              type="button"
+              className="btn btn-primary"
+              disabled={importing || parsedCsvRows.length === 0}
+              onClick={handleRunImport}
+            >
+              {importing ? 'Importando...' : `Importar ${parsedCsvRows.length} Ativo(s)`}
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Add Position Form */}
       <form onSubmit={handleAdd} className="card" style={styles.formCard}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap', marginBottom: '0.75rem' }}>
@@ -491,6 +625,68 @@ function Portfolio() {
               })}
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Monthly Estimated Dividends Calendar & Selic Benchmark */}
+      {!loading && positions.length > 0 && (
+        <div className="card" style={{ padding: '1.25rem 1.35rem', marginBottom: '1.25rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem', marginBottom: '0.85rem' }}>
+            <div>
+              <h2 className="section-title" style={{ fontSize: '0.96rem', margin: 0 }}>
+                Calendário Estimado de Proventos &amp; Benchmark Selic
+              </h2>
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 2 }}>
+                FIIs distribuídos mensalmente; ações estimadas em ciclos trimestrais (base DY 12m).
+              </div>
+            </div>
+            {selicRate != null && (
+              <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
+                <span className="pill pill-neutral num" style={{ fontSize: '0.74rem' }}>
+                  Selic (BCB): {selicRate.toFixed(2).replace('.', ',')}% a.a.
+                </span>
+                {summary.totalProfitLossPct != null && (
+                  <span
+                    className={`pill num ${summary.totalProfitLossPct >= selicRate ? 'pill-pos' : 'pill-warn'}`}
+                    style={{ fontSize: '0.74rem' }}
+                  >
+                    Carteira vs. Selic: {summary.totalProfitLossPct >= selicRate ? '+' : ''}
+                    {(summary.totalProfitLossPct - selicRate).toFixed(2).replace('.', ',')} p.p.
+                  </span>
+                )}
+              </div>
+            )}
+          </div>
+
+          {(() => {
+            const months = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+            const monthly = new Array(12).fill(0);
+            for (const p of positions) {
+              const annual = p.estimated_annual_dividend || 0;
+              if (annual <= 0) continue;
+              if (p.asset_type === 'fii') {
+                for (let m = 0; m < 12; m += 1) monthly[m] += annual / 12;
+              } else {
+                // Typical B3 stock payout cadence (Mar, Jun, Set, Dez)
+                for (const m of [2, 5, 8, 11]) monthly[m] += annual / 4;
+              }
+            }
+            const maxVal = Math.max(...monthly, 1);
+            return (
+              <div className="pf-monthly-bars" aria-label="Projeção mensal de dividendos">
+                {months.map((label, idx) => {
+                  const val = monthly[idx];
+                  const pctH = val > 0 ? Math.max(10, Math.round((val / maxVal) * 100)) : 4;
+                  return (
+                    <div key={label} className="pf-month-col" title={`${label}: ${displayBrl(val)}`}>
+                      <div className="pf-month-bar" style={{ height: `${pctH}%`, opacity: val > 0 ? 0.88 : 0.2 }} />
+                      <span className="pf-month-label">{label}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })()}
         </div>
       )}
 

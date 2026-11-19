@@ -488,3 +488,32 @@ def run_quantitative_analysis(conn: sqlite3.Connection) -> list[dict[str, Any]]:
     conn.commit()
     return evaluated
 
+
+
+def run_fii_quantitative_analysis(conn: sqlite3.Connection) -> list[dict[str, Any]]:
+    """Run transparent quantitative evaluation across all listed FIIs with CVM fundamentals."""
+    selic_row = conn.execute("SELECT value FROM macro_indicators WHERE key = 'selic'").fetchone()
+    selic = float(selic_row["value"]) if selic_row else None
+
+    rows = conn.execute(
+        """
+        SELECT a.symbol, a.name, a.sector, a.price, a.change_pct, a.volume, a.market_cap,
+               f.pvp, f.dy, f.patrimonio_liquido, f.source, f.reference_date
+        FROM assets a
+        LEFT JOIN fundamentals f ON f.symbol = a.symbol
+        WHERE a.asset_type = 'fii'
+          AND (f.pvp IS NOT NULL OR f.dy IS NOT NULL)
+        """
+    ).fetchall()
+
+    evaluated = []
+    for r in rows:
+        rec = dict(r)
+        ev = evaluate_fii(rec, selic=selic)
+        ev["price"] = rec.get("price")
+        ev["pvp"] = rec.get("pvp")
+        ev["dy"] = rec.get("dy")
+        evaluated.append(ev)
+
+    evaluated.sort(key=lambda x: x["score"], reverse=True)
+    return evaluated

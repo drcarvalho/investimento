@@ -436,3 +436,39 @@ test('resolvePostgresUrl and sanitizePgConnectionString support Vercel Storage P
   assert.ok(!sanitized.connectionString.includes('sslmode='));
 });
 
+
+test('GET /api/intelligence/fii-rankings and /api/assets/:symbol/events return valid schemas', async () => {
+  const fiiRes = await fetch(`${baseUrl}/api/intelligence/fii-rankings`);
+  assert.equal(fiiRes.status, 200);
+  const fiiBody = await fiiRes.json();
+  assert.ok(Array.isArray(fiiBody.rankings));
+  assert.ok(Array.isArray(fiiBody.segments));
+
+  const evRes = await fetch(`${baseUrl}/api/assets/PETR4/events`);
+  assert.equal(evRes.status, 200);
+  const evBody = await evRes.json();
+  assert.equal(evBody.symbol, 'PETR4');
+  assert.ok(Array.isArray(evBody.events));
+});
+
+test('GET /api/auth/status and verifySupabaseJwt validate HS256 tokens cleanly', async () => {
+  const crypto = require('crypto');
+  const { verifySupabaseJwt } = require('../src/middleware/auth');
+
+  const statusRes = await fetch(`${baseUrl}/api/auth/status`);
+  assert.equal(statusRes.status, 200);
+  const statusBody = await statusRes.json();
+  assert.equal(statusBody.provider, 'supabase');
+
+  const secret = 'test-supabase-jwt-secret';
+  const b64u = (obj) => Buffer.from(JSON.stringify(obj)).toString('base64url');
+  const head = b64u({ alg: 'HS256', typ: 'JWT' });
+  const payload = b64u({ sub: 'user-123', email: 'invest@example.com', role: 'authenticated', exp: Math.floor(Date.now() / 1000) + 3600 });
+  const sig = crypto.createHmac('sha256', secret).update(`${head}.${payload}`).digest('base64url');
+  const token = `${head}.${payload}.${sig}`;
+
+  const verified = verifySupabaseJwt(token, secret);
+  assert.equal(verified.id, 'user-123');
+  assert.equal(verified.email, 'invest@example.com');
+  assert.equal(verifySupabaseJwt(token, 'wrong-secret'), null);
+});

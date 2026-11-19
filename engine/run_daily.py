@@ -23,6 +23,7 @@ from engine.collectors.bcb_collector import sync_bcb_macro
 from engine.collectors.market_collector import sync_brapi_assets
 from engine.collectors.cvm_fii_collector import sync_cvm_fiis
 from engine.collectors.cvm_collector import sync_cvm_dfp, sync_cvm_itr
+from engine.collectors.cvm_events_collector import sync_cvm_events
 from engine.analyzer import run_quantitative_analysis
 from engine.bot.daily_bot import run_daily_bot
 from engine.bot.evaluator import evaluate_recommendations
@@ -44,7 +45,8 @@ def safe_step(label: str, fn: Callable[[], T], default: T, warnings: list[str]) 
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Investimento Flash — Motor Quantitativo & Bot Diario")
-    parser.add_argument("--with-cvm", action="store_true", help="Baixar DFP anual + ITR trimestral oficial da CVM")
+    parser.add_argument("--with-cvm", action="store_true", help="Baixar DFP anual + ITR trimestral + IPE eventos oficiais da CVM")
+    parser.add_argument("--with-events", action="store_true", help="Baixar Fatos Relevantes e Comunicados (CVM IPE)")
     parser.add_argument("--skip-cvm-fiis", action="store_true", help="Pular download do Informe Mensal de FIIs da CVM")
     parser.add_argument("--with-ai", action="store_true", help="Adicionar resumo executivo via Gemini 2.5 Flash (requer GEMINI_API_KEY)")
     parser.add_argument("--send-telegram", action="store_true", help="Enviar relatorio diario para o Telegram")
@@ -84,6 +86,11 @@ def main() -> int:
                 dfp_count = safe_step("CVM DFP", lambda: sync_cvm_dfp(conn), 0, warnings)
                 itr_count = safe_step("CVM ITR", lambda: sync_cvm_itr(conn), 0, warnings)
                 print(f"    -> CVM DFP: {dfp_count} empresas | CVM ITR: {itr_count} empresas.")
+
+            if args.with_cvm or args.with_events:
+                print("3c/6 Baixando Fatos Relevantes e Comunicados da CVM (IPE)...")
+                ev_count = safe_step("CVM IPE", lambda: sync_cvm_events(conn), 0, warnings)
+                print(f"    -> CVM IPE: {ev_count} comunicados oficiais sincronizados.")
 
         print("4/6 Executando motor quantitativo e comparacao setorial...")
         rankings = run_quantitative_analysis(conn)

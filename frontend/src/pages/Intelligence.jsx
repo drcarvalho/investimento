@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ShieldCheckIcon, TrendingDownIcon, BarChartIcon, CheckCircleIcon, RefreshIcon, ScaleIcon } from '../components/Icons';
+import { ShieldCheckIcon, TrendingDownIcon, BarChartIcon, CheckCircleIcon, RefreshIcon, ScaleIcon, BuildingIcon } from '../components/Icons';
 import StockLogo from '../components/StockLogo';
 import { showToast } from '../components/Toast';
 import { apiFetch } from '../api';
@@ -31,8 +31,10 @@ function Intelligence() {
   const canRunEngine = !import.meta.env.PROD;
   const [tab, setTab] = React.useState('oportunidades');
   const [rankData, setRankData] = React.useState(null);
+  const [fiiRankData, setFiiRankData] = React.useState(null);
   const [recData, setRecData] = React.useState(null);
   const [sectorFilter, setSectorFilter] = React.useState('Todos');
+  const [fiiSegmentFilter, setFiiSegmentFilter] = React.useState('Todos');
   const [loading, setLoading] = React.useState(true);
   const [runningEngine, setRunningEngine] = React.useState(false);
   const [error, setError] = React.useState(null);
@@ -60,10 +62,12 @@ function Intelligence() {
     setError(null);
     Promise.all([
       apiFetch('/api/intelligence/rankings'),
+      apiFetch('/api/intelligence/fii-rankings').catch(() => ({ count: 0, segments: [], rankings: [] })),
       apiFetch('/api/intelligence/recommendations'),
     ])
-      .then(([rk, rc]) => {
+      .then(([rk, fiiRk, rc]) => {
         setRankData(rk);
+        setFiiRankData(fiiRk);
         setRecData(rc);
         setLoading(false);
       })
@@ -80,6 +84,10 @@ function Intelligence() {
   const allRankings = rankData?.rankings || [];
   const rankings = allRankings.filter(
     (r) => sectorFilter === 'Todos' || r.sector === sectorFilter
+  );
+  const allFiiRankings = fiiRankData?.rankings || [];
+  const fiiRankings = allFiiRankings.filter(
+    (r) => fiiSegmentFilter === 'Todos' || r.sector === fiiSegmentFilter
   );
   const alerts = rankData?.deteriorationAlerts || [];
   const recs = recData?.recommendations || [];
@@ -172,7 +180,7 @@ function Intelligence() {
         role="tablist"
         aria-label="Seções de Inteligência Quantitativa"
         onKeyDown={(e) => {
-          const keys = ['oportunidades', 'alertas', 'bot'];
+          const keys = ['oportunidades', 'fiis', 'alertas', 'bot'];
           const idx = keys.indexOf(tab);
           if (e.key === 'ArrowRight') {
             e.preventDefault();
@@ -193,6 +201,17 @@ function Intelligence() {
           onClick={() => setTab('oportunidades')}
         >
           <BarChartIcon size={15} /> Ranking de Oportunidades ({rankData?.count || 0})
+        </button>
+        <button
+          id="intel-tab-fiis"
+          role="tab"
+          aria-selected={tab === 'fiis'}
+          aria-controls="intel-panel-fiis"
+          tabIndex={tab === 'fiis' ? 0 : -1}
+          className={`tab-btn ${tab === 'fiis' ? 'active' : ''}`}
+          onClick={() => setTab('fiis')}
+        >
+          <BuildingIcon size={15} /> Ranking de FIIs ({fiiRankData?.count || 0})
         </button>
         <button
           id="intel-tab-alertas"
@@ -333,6 +352,96 @@ function Intelligence() {
                             <ScaleIcon size={13} /> Comparar
                           </button>
                         </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* TAB 1B: Ranking Quantitativo de FIIs */}
+          {tab === 'fiis' && (
+            <div id="intel-panel-fiis" role="tabpanel" aria-labelledby="intel-tab-fiis" className="tab-panel-animate">
+              {(fiiRankData?.segments || []).length > 1 && (
+                <div style={{ display: 'flex', gap: '0.45rem', flexWrap: 'wrap', marginBottom: '1rem' }}>
+                  {['Todos', ...(fiiRankData?.segments || [])].map((seg) => (
+                    <button
+                      key={seg}
+                      type="button"
+                      className={`pf-pill ${fiiSegmentFilter === seg ? 'active' : ''}`}
+                      onClick={() => setFiiSegmentFilter(seg)}
+                    >
+                      {seg}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {fiiRankings.length === 0 ? (
+                <div className="card" style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>
+                  Nenhum FII com fundamentos CVM sincronizado no momento. Execute o motor diário para popular P/VP e DY oficiais.
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.9rem' }}>
+                  {fiiRankings.map((item, idx) => (
+                    <div key={item.symbol} className="card" style={{ padding: '1.15rem 1.3rem' }}>
+                      <div style={styles.rankTop}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
+                          <span className="mono" style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--text-subtle)', minWidth: 28 }}>
+                            #{idx + 1}
+                          </span>
+                          <StockLogo src={item.logo} symbol={item.symbol} size={38} radius={6} />
+                          <div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                              <strong className="mono" style={{ fontSize: '1.02rem', color: 'var(--text-primary)' }}>{item.symbol}</strong>
+                              <span className="pill pill-neutral" style={{ fontSize: '0.68rem' }}>{item.sector}</span>
+                              <span className="pill pill-brand" style={{ fontSize: '0.68rem' }}>{item.classification}</span>
+                            </div>
+                            <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: 2 }}>
+                              {item.name} · {item.price != null ? `R$ ${fmt(item.price)}` : 'Sem cotação'}
+                            </div>
+                          </div>
+                        </div>
+
+                        <div style={{ textAlign: 'right' }}>
+                          <div className="num" style={{ fontSize: '1.35rem', fontWeight: 800, color: scoreColor(item.score) }}>
+                            {item.score}<span style={{ fontSize: '0.75rem', color: 'var(--text-subtle)', fontWeight: 500 }}>/100</span>
+                          </div>
+                          <div style={{ fontSize: '0.7rem', color: 'var(--text-subtle)' }}>{item.source}</div>
+                        </div>
+                      </div>
+
+                      <div style={styles.pillarsGrid}>
+                        {[
+                          { label: 'P/VP (40)', val: item.breakdown?.pvp ?? 0, max: 40, raw: item.metrics?.pvp != null ? `${fmt(item.metrics.pvp)}x` : '—' },
+                          { label: 'Dividend Yield (45)', val: item.breakdown?.dy ?? 0, max: 45, raw: item.metrics?.dy != null ? `${fmt(item.metrics.dy)}%` : '—' },
+                          { label: 'Liquidez/Porte (15)', val: item.breakdown?.liquidity ?? 0, max: 15, raw: item.metrics?.volume ? `${(item.metrics.volume / 1e6).toFixed(2).replace('.', ',')}M` : '—' },
+                        ].map((p) => (
+                          <div key={p.label} style={{ background: 'var(--bg-surface-subtle)', padding: '0.55rem 0.7rem', borderRadius: 4, border: '1px solid var(--border-subtle)' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.7rem', color: 'var(--text-muted)', marginBottom: 4 }}>
+                              <span>{p.label}</span>
+                              <strong className="num" style={{ color: 'var(--text-primary)' }}>{p.raw}</strong>
+                            </div>
+                            <div style={{ height: 5, background: 'var(--border-subtle)', borderRadius: 3, overflow: 'hidden' }}>
+                              <div style={{ width: `${Math.min(100, (p.val / p.max) * 100)}%`, height: '100%', background: 'var(--brand)' }} />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+
+                      <div style={styles.bottomRow}>
+                        <div style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', display: 'flex', gap: '0.65rem', flexWrap: 'wrap' }}>
+                          {(item.positives || []).slice(0, 2).map((pos) => (
+                            <span key={pos} style={{ color: 'var(--positive)' }}>• {pos}</span>
+                          ))}
+                          {(item.risks || []).slice(0, 1).map((rk) => (
+                            <span key={rk} style={{ color: 'var(--warning)' }}>• {rk}</span>
+                          ))}
+                        </div>
+                        <button type="button" className="btn btn-ghost" style={{ fontSize: '0.76rem' }} onClick={() => navigate(`/acoes/${item.symbol}`)}>
+                          Abrir FII
+                        </button>
                       </div>
                     </div>
                   ))}

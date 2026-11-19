@@ -9,6 +9,7 @@ const {
   isLoopbackIp,
 } = require('./middleware/security');
 const { requestObservability, getRequestMetrics } = require('./middleware/observability');
+const { attachOptionalUser, getAuthStatus } = require('./middleware/auth');
 const { getCacheStats } = require('./services/brapi');
 const { getBcbStats } = require('./services/bcb');
 const db = require('./models/db');
@@ -42,6 +43,7 @@ function createApp() {
   const writeLimiter = createRateLimiter({ windowMs: 60 * 1000, max: 40 });
   const engineRunLimiter = createRateLimiter({ windowMs: 60 * 1000, max: 6 });
 
+  app.use('/api', attachOptionalUser);
   app.use('/api', readLimiter);
   app.use('/api/intelligence/run', engineRunLimiter);
   for (const writePrefix of ['/api/notes', '/api/watchlists', '/api/investments', '/api/intelligence/run']) {
@@ -65,6 +67,14 @@ function createApp() {
   app.use('/api/watchlists', watchlistsRouter);
   app.use('/api/intelligence', intelligenceRouter);
   app.use('/api', assetsRouter); // /api/macro, /api/assets, /api/assets/:symbol/dividends
+
+  app.get('/api/auth/status', (req, res) => {
+    res.json({
+      ...getAuthStatus(),
+      authenticated: Boolean(req.user),
+      user: req.user ? { id: req.user.id, email: req.user.email } : null,
+    });
+  });
 
   app.get('/api/health', async (req, res) => {
     try {

@@ -1,4 +1,5 @@
 const { normalizeTicker } = require('../utils/validation');
+const { distributedGet, distributedSet, isDistributedCacheEnabled } = require('./cacheStore');
 
 const BRAPI_BASE = 'https://brapi.dev/api';
 const REQUEST_TIMEOUT_MS = 8000;
@@ -57,8 +58,15 @@ async function fetchWithCoalescing(key, ttl, fetcher) {
 
   const promise = (async () => {
     try {
+      const remoteHit = await distributedGet(`brapi:${key}`);
+      if (remoteHit !== null) {
+        cacheSet(key, remoteHit);
+        cacheStats.hits += 1;
+        return remoteHit;
+      }
       const data = await fetcher();
       cacheSet(key, data);
+      distributedSet(`brapi:${key}`, data, ttl).catch(() => {});
       return data;
     } finally {
       inFlight.delete(key);
@@ -76,6 +84,7 @@ function getCacheStats() {
     entries: cache.size,
     inFlightCount: inFlight.size,
     maxEntries: MAX_CACHE_ENTRIES,
+    distributedCache: isDistributedCacheEnabled(),
     hitRatePct: total > 0 ? Number(((cacheStats.hits / total) * 100).toFixed(1)) : 0,
   };
 }
