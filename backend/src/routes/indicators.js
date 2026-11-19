@@ -4,6 +4,7 @@ const db = require('../models/db');
 const { getQuotes, getFullStockList, getFundsList, getHistory } = require('../services/brapi');
 const { fetchBolsaiFundamentals } = require('../services/bolsai');
 const { normalizeTicker, sanitizeSearchQuery } = require('../utils/validation');
+const { withTimeout } = require('../utils/async');
 const staticIndicators = require('../data/indicators-static.json');
 
 const FREE_TICKERS = new Set(['PETR4', 'VALE3', 'ITUB4', 'MGLU3']);
@@ -285,8 +286,8 @@ async function fetchLiveIndicators(symbol, dbFund) {
 router.get('/', async (req, res) => {
   try {
     const [liveList, dbFunds] = await Promise.all([
-      getFullStockList(150).catch(() => []),
-      db.allAsync('SELECT * FROM fundamentals').catch(() => []),
+      withTimeout(getFullStockList(150), 6500, []),
+      withTimeout(db.allAsync('SELECT * FROM fundamentals'), 3000, []),
     ]);
 
     const liveMap = new Map(liveList.map((s) => [s.stock.toUpperCase(), s]));
@@ -425,7 +426,7 @@ router.get('/:symbol', async (req, res) => {
     }
 
     // Check SQLite fundamentals (CVM / Python / bolsai)
-    let dbFund = await db.getAsync('SELECT * FROM fundamentals WHERE symbol = ?', [symbol]).catch(() => null);
+    let dbFund = await withTimeout(db.getAsync('SELECT * FROM fundamentals WHERE symbol = ?', [symbol]), 3000, null);
     if (!dbFund && process.env.BOLSAI_API_KEY) {
       dbFund = await fetchBolsaiFundamentals(symbol);
     }

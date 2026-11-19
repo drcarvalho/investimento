@@ -1,0 +1,10 @@
+/home/daniel/Desktop/investimento-pro-v6/api
+/home/daniel/Desktop/investimento-pro-v6/backend
+/home/daniel/Desktop/investimento-pro-v6/engine
+/home/daniel/Desktop/investimento-pro-v6/frontend
+/home/daniel/Desktop/investimento-pro-v6/supabase
+/home/daniel/Desktop/investimento-pro-v6/CONTEXTO_IA.md
+/home/daniel/Desktop/investimento-pro-v6/docker-compose.yml
+/home/daniel/Desktop/investimento-pro-v6/package.json
+/home/daniel/Desktop/investimento-pro-v6/README.md
+/home/daniel/Desktop/investimento-pro-v6/vercel.json

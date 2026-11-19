@@ -33,7 +33,7 @@ async function performFetch(url, options) {
   const timeoutId = setTimeout(() => {
     timedOut = true;
     controller.abort();
-  }, options.timeoutMs || 10000);
+  }, options.timeoutMs || 15000);
 
   if (options.signal) {
     if (options.signal.aborted) {

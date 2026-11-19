@@ -4,6 +4,7 @@ const db = require('../models/db');
 const { getBrapiHeaders, getFullStockList, getFundsList } = require('../services/brapi');
 const { getMacroIndicators } = require('../services/bcb');
 const { normalizeTicker, sanitizeSearchQuery } = require('../utils/validation');
+const { withTimeout } = require('../utils/async');
 
 // GET /api/macro — Banco Central SGS macro indicators (Selic, IPCA, PTAX USD)
 router.get('/macro', async (req, res) => {
@@ -25,7 +26,7 @@ router.get('/assets', async (req, res) => {
 
     let items = [];
     if (type === 'stock') {
-      const list = await getFullStockList(120);
+      const list = await withTimeout(getFullStockList(120), 6500, []);
       items = list.map((s) => ({
         symbol: s.stock,
         name: s.name || s.stock,
@@ -38,17 +39,48 @@ router.get('/assets', async (req, res) => {
         logo: s.logo || `https://icons.brapi.dev/icons/${s.stock}.svg`,
       }));
     } else {
-      items = await getFundsList(type, 80);
+      items = await withTimeout(getFundsList(type, 80), 6500, []);
     }
 
-    // Merge persisted fundamentals only for the symbols returned in this response
+    // Fallback to persisted DB assets table if live brapi list is temporarily unavailable
+    if (items.length === 0) {
+      const dbAssets = await withTimeout(
+        db.allAsync(
+          `SELECT symbol, name, asset_type, sector, logo, price, change_pct, volume, market_cap
+           FROM assets
+           WHERE asset_type = ?
+           ORDER BY COALESCE(volume, 0) DESC, COALESCE(market_cap, 0) DESC
+           LIMIT 80`,
+          [type]
+        ),
+        3000,
+        []
+      );
+      items = dbAssets.map((a) => ({
+        symbol: a.symbol,
+        name: a.name || a.symbol,
+        assetType: a.asset_type || type,
+        sector: a.sector || (type === 'fii' ? 'Fundos Imobiliários' : type === 'etf' ? 'ETFs' : 'Ações B3'),
+        price: a.price ?? null,
+        change: a.change_pct ?? null,
+        volume: a.volume ?? 0,
+        marketCap: a.market_cap ?? null,
+        logo: a.logo || `https://icons.brapi.dev/icons/${a.symbol}.svg`,
+      }));
+    }
+
+    // Merge persisted fundamentals safely (never fail the whole response if DB is slow/offline)
     const symbols = [...new Set(items.map((i) => i.symbol.toUpperCase()))];
     let fundRows = [];
     if (symbols.length > 0) {
       const placeholders = symbols.map(() => '?').join(',');
-      fundRows = await db.allAsync(
-        `SELECT symbol, dy, pvp, pl, roe, source FROM fundamentals WHERE symbol IN (${placeholders})`,
-        symbols
+      fundRows = await withTimeout(
+        db.allAsync(
+          `SELECT symbol, dy, pvp, pl, roe, source FROM fundamentals WHERE symbol IN (${placeholders})`,
+          symbols
+        ),
+        3000,
+        []
       );
     }
     const fundMap = new Map(fundRows.map((r) => [r.symbol.toUpperCase(), r]));

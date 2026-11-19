@@ -225,7 +225,10 @@ async function getFundsList(subType = 'all', limit = 60) {
     const json = await fetchBrapiJson(url);
 
     let items = (json.stocks || [])
-      .filter((s) => s.stock && typeof s.close === 'number' && s.close > 0)
+      .filter((s) => {
+        const closeNum = Number(s?.close);
+        return Boolean(s?.stock) && Number.isFinite(closeNum) && closeNum > 0;
+      })
       .map((s) => {
         const st = (s.subType || '').toLowerCase();
         const nameUp = (s.name || '').toUpperCase();
@@ -240,10 +243,10 @@ async function getFundsList(subType = 'all', limit = 60) {
           name: s.name || s.stock,
           assetType,
           sector: s.sector || (assetType === 'fii' ? 'Fundos Imobiliários' : 'ETFs'),
-          price: s.close,
-          change: s.change ?? 0,
-          volume: s.volume ?? 0,
-          marketCap: s.market_cap ?? null,
+          price: Number(s.close),
+          change: typeof s.change === 'number' ? s.change : (Number.isFinite(Number(s.change)) ? Number(s.change) : 0),
+          volume: Number(s.volume) || 0,
+          marketCap: s.market_cap != null ? Number(s.market_cap) : null,
           logo: s.logo || `https://icons.brapi.dev/icons/${s.stock}.svg`,
         };
       });

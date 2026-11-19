@@ -7,6 +7,7 @@ const db = require('../models/db');
 const staticIndicators = require('../data/indicators-static.json');
 const { getFullStockList, getFundsList } = require('../services/brapi');
 const { normalizeTicker } = require('../utils/validation');
+const { withTimeout } = require('../utils/async');
 const { timingSafeEqualStr, isLoopbackIp } = require('../middleware/security');
 
 let engineRunning = false;
@@ -193,15 +194,19 @@ function buildFallbackRankings() {
 // GET /api/intelligence/rankings — Python Quant Engine transparent rankings & deterioration alerts
 router.get('/rankings', async (req, res) => {
   try {
-    const rows = await db.allAsync(`
-      SELECT q.*, a.name, a.logo, a.price, a.change_pct,
-             f.pl, f.pvp, f.dy, f.roe, f.roic, f.margem_liquida,
-             f.divida_liquida_ebitda, f.crescimento_receita, f.crescimento_lucro, f.source AS fund_source
-      FROM quant_rankings q
-      LEFT JOIN assets a ON a.symbol = q.symbol
-      LEFT JOIN fundamentals f ON f.symbol = q.symbol
-      ORDER BY q.score DESC
-    `);
+    const rows = await withTimeout(
+      db.allAsync(`
+        SELECT q.*, a.name, a.logo, a.price, a.change_pct,
+               f.pl, f.pvp, f.dy, f.roe, f.roic, f.margem_liquida,
+               f.divida_liquida_ebitda, f.crescimento_receita, f.crescimento_lucro, f.source AS fund_source
+        FROM quant_rankings q
+        LEFT JOIN assets a ON a.symbol = q.symbol
+        LEFT JOIN fundamentals f ON f.symbol = q.symbol
+        ORDER BY q.score DESC
+      `),
+      3000,
+      []
+    );
 
     let liveMap = new Map();
     try {
@@ -288,10 +293,10 @@ router.get('/rankings', async (req, res) => {
 router.get('/fii-rankings', async (req, res) => {
   try {
     const [liveFiis, dbFiis, dbFunds, selicRow] = await Promise.all([
-      getFundsList('fii', 80).catch(() => []),
-      db.allAsync("SELECT symbol, name, sector, logo, price, change_pct, volume, market_cap FROM assets WHERE asset_type = 'fii'").catch(() => []),
-      db.allAsync('SELECT symbol, pvp, dy, patrimonio_liquido, source, reference_date, updated_at FROM fundamentals').catch(() => []),
-      db.getAsync("SELECT value FROM macro_indicators WHERE key = 'selic'").catch(() => null),
+      withTimeout(getFundsList('fii', 80), 6500, []),
+      withTimeout(db.allAsync("SELECT symbol, name, sector, logo, price, change_pct, volume, market_cap FROM assets WHERE asset_type = 'fii'"), 3000, []),
+      withTimeout(db.allAsync('SELECT symbol, pvp, dy, patrimonio_liquido, source, reference_date, updated_at FROM fundamentals'), 3000, []),
+      withTimeout(db.getAsync("SELECT value FROM macro_indicators WHERE key = 'selic'"), 2500, null),
     ]);
 
     const selic = selicRow && Number.isFinite(Number(selicRow.value)) ? Number(selicRow.value) : null;

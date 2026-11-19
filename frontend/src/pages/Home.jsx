@@ -85,6 +85,8 @@ function Home() {
   const [refreshing, setRefreshing] = React.useState(false);
   const [fiisLoaded, setFiisLoaded] = React.useState(false);
   const [etfsLoaded, setEtfsLoaded] = React.useState(false);
+  const [fiisError, setFiisError] = React.useState(false);
+  const [etfsError, setEtfsError] = React.useState(false);
   const [error, setError] = React.useState(null);
   const [lastUpdate, setLastUpdate] = React.useState(null);
 
@@ -97,7 +99,13 @@ function Home() {
 
 
   const fetchAll = React.useCallback((manual = false) => {
-    if (manual) setRefreshing(true);
+    if (manual) {
+      setRefreshing(true);
+      setFiisLoaded(false);
+      setEtfsLoaded(false);
+      setFiisError(false);
+      setEtfsError(false);
+    }
     setError(null);
 
     Promise.all([
@@ -131,18 +139,30 @@ function Home() {
     return () => clearInterval(interval);
   }, [fetchAll]);
 
-  // Lazy load FIIs / ETFs only when user selects those tabs
+  // Lazy load FIIs / ETFs when user selects those tabs (with retry support on failure)
   React.useEffect(() => {
     if (marketTab === 'fiis' && !fiisLoaded) {
+      setFiisError(false);
       apiFetch('/api/assets?type=fii')
-        .then((res) => setFiis((res.assets || []).slice(0, 15)))
-        .catch(() => {})
-        .finally(() => setFiisLoaded(true));
+        .then((res) => {
+          setFiis((res.assets || []).slice(0, 15));
+          setFiisLoaded(true);
+        })
+        .catch(() => {
+          setFiisError(true);
+          setFiisLoaded(true);
+        });
     } else if (marketTab === 'etfs' && !etfsLoaded) {
+      setEtfsError(false);
       apiFetch('/api/assets?type=etf')
-        .then((res) => setEtfs((res.assets || []).slice(0, 15)))
-        .catch(() => {})
-        .finally(() => setEtfsLoaded(true));
+        .then((res) => {
+          setEtfs((res.assets || []).slice(0, 15));
+          setEtfsLoaded(true);
+        })
+        .catch(() => {
+          setEtfsError(true);
+          setEtfsLoaded(true);
+        });
     }
   }, [marketTab, fiisLoaded, etfsLoaded]);
 
@@ -607,7 +627,16 @@ function Home() {
                       {visibleStocks.length === 0 ? (
                         <tr>
                           <td colSpan={9} style={{ textAlign: 'center', padding: '1.8rem', color: 'var(--text-muted)' }}>
-                            Nenhuma ação atende a este filtro rápido.
+                            {allStocks.length === 0 ? (
+                              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.6rem' }}>
+                                <span>Não foi possível carregar a tabela de ações no momento.</span>
+                                <button type="button" className="btn btn-ghost" style={{ fontSize: '0.78rem' }} onClick={() => fetchAll(true)}>
+                                  Tentar novamente
+                                </button>
+                              </div>
+                            ) : (
+                              'Nenhuma ação atende a este filtro rápido.'
+                            )}
                           </td>
                         </tr>
                       ) : (
@@ -736,7 +765,16 @@ function Home() {
                     {fiis.length === 0 ? (
                       <tr>
                         <td colSpan={5} style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>
-                          {fiisLoaded ? 'Nenhum FII disponível no momento.' : 'Carregando fundos imobiliários...'}
+                          {!fiisLoaded ? (
+                            'Carregando fundos imobiliários...'
+                          ) : (
+                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.6rem' }}>
+                              <span>{fiisError ? 'Falha temporária ao carregar FIIs.' : 'Nenhum FII disponível no momento.'}</span>
+                              <button type="button" className="btn btn-ghost" style={{ fontSize: '0.78rem' }} onClick={() => setFiisLoaded(false)}>
+                                Tentar novamente
+                              </button>
+                            </div>
+                          )}
                         </td>
                       </tr>
                     ) : (
@@ -808,7 +846,16 @@ function Home() {
                     {etfs.length === 0 ? (
                       <tr>
                         <td colSpan={4} style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>
-                          {etfsLoaded ? 'Nenhum ETF disponível no momento.' : 'Carregando ETFs...'}
+                          {!etfsLoaded ? (
+                            'Carregando ETFs...'
+                          ) : (
+                            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.6rem' }}>
+                              <span>{etfsError ? 'Falha temporária ao carregar ETFs.' : 'Nenhum ETF disponível no momento.'}</span>
+                              <button type="button" className="btn btn-ghost" style={{ fontSize: '0.78rem' }} onClick={() => setEtfsLoaded(false)}>
+                                Tentar novamente
+                              </button>
+                            </div>
+                          )}
                         </td>
                       </tr>
                     ) : (

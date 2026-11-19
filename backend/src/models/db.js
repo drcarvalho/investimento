@@ -214,7 +214,8 @@ function createPostgresDb(rawConnectionString) {
     ssl: isLocal ? false : { rejectUnauthorized: false },
     max: process.env.VERCEL ? 3 : 10,
     idleTimeoutMillis: 20_000,
-    connectionTimeoutMillis: 10_000,
+    connectionTimeoutMillis: process.env.VERCEL ? 4500 : 8000,
+    statement_timeout: process.env.VERCEL ? 5000 : 15_000,
   });
 
   let schemaPromise = null;
@@ -223,9 +224,9 @@ function createPostgresDb(rawConnectionString) {
       schemaPromise = (async () => {
         const client = await pool.connect();
         try {
-          for (const stmt of PG_SCHEMA_STATEMENTS) {
-            await client.query(stmt);
-          }
+          // Execute all idempotent DDL statements in a single network round-trip
+          // to eliminate cold-start latency on serverless (Vercel -> Supabase).
+          await client.query(PG_SCHEMA_STATEMENTS.join(';\n'));
           await client.query(
             `INSERT INTO watchlists (id, name, created_at)
              VALUES (1, 'Minha Lista Principal', $1)
