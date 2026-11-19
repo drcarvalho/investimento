@@ -22,6 +22,7 @@ import {
   BookOpenIcon,
   PrinterIcon,
   WalletIcon,
+  InfoIcon,
 } from '../components/Icons';
 import { useWatchlist } from '../hooks/useWatchlist';
 import { recordRecentStock } from '../hooks/useRecentStocks';
