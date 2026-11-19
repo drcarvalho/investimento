@@ -5,6 +5,7 @@ from __future__ import annotations
 import os
 import tempfile
 import unittest
+from unittest import mock
 from pathlib import Path
 
 from engine.db import get_connection
@@ -146,6 +147,37 @@ class EngineTests(unittest.TestCase):
                 os.environ.pop("BRAPI_TOKEN", None)
             else:
                 os.environ["BRAPI_TOKEN"] = previous
+
+    def test_fetch_v2_quotes_sanitizes_nulls_and_formats_cleanly(self) -> None:
+        from engine.collectors.market_collector import fetch_v2_quotes
+        mock_payload = {
+            "results": [
+                {
+                    "requestedSymbol": "PETR4",
+                    "symbol": "PETR4",
+                    "data": {
+                        "shortName": "PETR4",
+                        "longName": "Petrobras",
+                        "regularMarketPrice": 42.5,
+                        "regularMarketChange": -0.5,
+                        "regularMarketChangePercent": -1.16,
+                        "regularMarketVolume": 1000000,
+                        "regularMarketOpen": None,
+                        "fiftyTwoWeekLow": None,
+                        "logourl": None,
+                    }
+                }
+            ]
+        }
+        with mock.patch("engine.collectors.market_collector._fetch_json", return_value=mock_payload):
+            quotes = fetch_v2_quotes(["PETR4"])
+            self.assertEqual(len(quotes), 1)
+            q = quotes[0]
+            self.assertEqual(q["symbol"], "PETR4")
+            self.assertEqual(q["price"], 42.5)
+            self.assertIsNone(q["open"])
+            self.assertIsNone(q["fiftyTwoWeekLow"])
+            self.assertEqual(q["logoUrl"], "https://icons.brapi.dev/icons/PETR4.svg")
 
     def test_run_daily_safe_step_isolates_collector_failures(self):
         from engine.run_daily import safe_step

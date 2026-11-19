@@ -256,6 +256,19 @@ test('brapi token is sent exclusively in the Authorization header', () => {
   }
 });
 
+test('GET /api/v2/quotes requires symbols parameter and returns 400 when missing', async () => {
+  const res = await fetch(`${baseUrl}/api/v2/quotes`);
+  assert.equal(res.status, 400);
+  const data = await res.json();
+  assert.ok(data.error.includes('symbols'));
+});
+
+test('getQuotesV2 handles empty or invalid ticker lists gracefully', async () => {
+  const { getQuotesV2 } = require('../src/services/brapi');
+  const res = await getQuotesV2([]);
+  assert.deepEqual(res, []);
+});
+
 test('CORS preflight allows X-API-Key and X-Metrics-Token headers', async () => {
   const res = await fetch(`${baseUrl}/api/metrics`, {
     method: 'OPTIONS',

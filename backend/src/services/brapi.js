@@ -2,6 +2,7 @@ const { normalizeTicker } = require('../utils/validation');
 const { distributedGet, distributedSet, isDistributedCacheEnabled } = require('./cacheStore');
 
 const BRAPI_BASE = 'https://brapi.dev/api';
+const BRAPI_V2_BASE = 'https://brapi.dev/api/v2';
 const REQUEST_TIMEOUT_MS = 8000;
 const MAX_CACHE_ENTRIES = 120;
 
@@ -97,22 +98,123 @@ function getBrapiHeaders() {
   };
 }
 
-async function fetchBrapiJson(url) {
+async function fetchBrapiJson(url, options = {}) {
   cacheStats.upstreamRequests += 1;
+  const timeoutMs = options.timeoutMs || REQUEST_TIMEOUT_MS;
+
   try {
     const res = await fetch(url, {
-      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+      signal: AbortSignal.timeout(timeoutMs),
       headers: getBrapiHeaders(),
     });
 
     if (!res.ok) {
-      throw new Error(`Brapi HTTP ${res.status}`);
+      const errorBody = await res.json().catch(() => ({}));
+
+      if (res.status === 401) {
+        const err = new Error(
+          errorBody.message ||
+            'Não autorizado na brapi.dev (HTTP 401). Verifique se a variável BRAPI_TOKEN está configurada e válida.'
+        );
+        err.status = 401;
+        err.code = errorBody.code || 'UNAUTHORIZED';
+        throw err;
+      }
+
+      if (res.status === 404) {
+        const err = new Error(
+          errorBody.message || 'Ativo ou recurso não encontrado na brapi.dev (HTTP 404).'
+        );
+        err.status = 404;
+        err.code = errorBody.code || 'NOT_FOUND';
+        throw err;
+      }
+
+      if (res.status === 429) {
+        const retryAfterHeader = res.headers.get('Retry-After') || res.headers.get('ratelimit-reset');
+        const retryAfterSec = parseInt(retryAfterHeader, 10) || 60;
+        const err = new Error(
+          errorBody.message ||
+            `Limite de requisições na brapi.dev atingido (HTTP 429). Tente novamente em ${retryAfterSec}s.`
+        );
+        err.status = 429;
+        err.code = 'RATE_LIMIT_EXCEEDED';
+        err.retryAfter = retryAfterSec;
+        throw err;
+      }
+
+      const err = new Error(errorBody.message || `Brapi HTTP ${res.status}`);
+      err.status = res.status;
+      err.code = errorBody.code || `HTTP_${res.status}`;
+      throw err;
     }
+
     return await res.json();
   } catch (err) {
     cacheStats.upstreamErrors += 1;
     throw err;
   }
+}
+
+function sanitizeV2Quote(item) {
+  if (!item) return null;
+  const d = item.data || {};
+  const symbol = item.symbol || item.requestedSymbol || null;
+  if (!symbol) return null;
+
+  const toFiniteNumOrNull = (val) => {
+    if (val === null || val === undefined) return null;
+    const num = Number(val);
+    return Number.isFinite(num) ? num : null;
+  };
+
+  return {
+    symbol,
+    requestedSymbol: item.requestedSymbol || symbol,
+    name: d.longName || d.shortName || symbol,
+    shortName: d.shortName || null,
+    longName: d.longName || null,
+    currency: d.currency || 'BRL',
+    price: toFiniteNumOrNull(d.regularMarketPrice),
+    change: toFiniteNumOrNull(d.regularMarketChange),
+    changePercent: toFiniteNumOrNull(d.regularMarketChangePercent),
+    dayHigh: toFiniteNumOrNull(d.regularMarketDayHigh),
+    dayLow: toFiniteNumOrNull(d.regularMarketDayLow),
+    dayRange: d.regularMarketDayRange || null,
+    open: toFiniteNumOrNull(d.regularMarketOpen),
+    previousClose: toFiniteNumOrNull(d.regularMarketPreviousClose),
+    volume: toFiniteNumOrNull(d.regularMarketVolume),
+    marketCap: toFiniteNumOrNull(d.marketCap),
+    fiftyTwoWeekLow: toFiniteNumOrNull(d.fiftyTwoWeekLow),
+    fiftyTwoWeekHigh: toFiniteNumOrNull(d.fiftyTwoWeekHigh),
+    fiftyTwoWeekRange: d.fiftyTwoWeekRange || null,
+    logoUrl: d.logourl || `https://icons.brapi.dev/icons/${symbol}.svg`,
+    marketTime: d.regularMarketTime || null,
+    updatedAt: d.regularMarketTime || new Date().toISOString(),
+  };
+}
+
+// Fetch quotes using brapi API v2 (/api/v2/stocks/quote?symbols=...)
+async function getQuotesV2(symbols) {
+  const symbolList = Array.isArray(symbols)
+    ? symbols
+    : typeof symbols === 'string'
+      ? symbols.split(',')
+      : [];
+
+  const validSymbols = [...new Set(symbolList.map(normalizeTicker).filter(Boolean))];
+  if (validSymbols.length === 0) return [];
+
+  const key = `v2_quotes_${validSymbols.sort().join(',')}`;
+
+  return fetchWithCoalescing(key, CACHE_TTL, async () => {
+    const encodedSymbols = validSymbols.map(encodeURIComponent).join(',');
+    const url = `${BRAPI_V2_BASE}/stocks/quote?symbols=${encodedSymbols}`;
+
+    const json = await fetchBrapiJson(url);
+    const results = Array.isArray(json?.results) ? json.results : [];
+    return results.map(sanitizeV2Quote).filter(Boolean);
+  });
 }
 
 // Fetch quotes for validated tickers
@@ -264,6 +366,7 @@ async function getDetailedQuotes() {
 
 module.exports = {
   getQuotes,
+  getQuotesV2,
   getFullStockList,
   getStockList,
   getFundsList,
@@ -273,4 +376,5 @@ module.exports = {
   getCacheStats,
   getBrapiHeaders,
   fetchWithCoalescing,
+  fetchBrapiJson,
 };

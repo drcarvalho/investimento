@@ -1,10 +1,44 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../models/db');
-const { getBrapiHeaders, getFullStockList, getFundsList } = require('../services/brapi');
+const { getBrapiHeaders, getFullStockList, getFundsList, getQuotesV2 } = require('../services/brapi');
 const { getMacroIndicators } = require('../services/bcb');
 const { normalizeTicker, sanitizeSearchQuery } = require('../utils/validation');
 const { withTimeout } = require('../utils/async');
+
+// GET /api/v2/quotes?symbols=PETR4,VALE3 — Multi-symbol live quotes via brapi API v2
+router.get('/v2/quotes', async (req, res) => {
+  try {
+    const rawSymbols = req.query.symbols || req.query.tickers || '';
+    const symbols = (typeof rawSymbols === 'string' ? rawSymbols.split(',') : Array.isArray(rawSymbols) ? rawSymbols : [])
+      .map(normalizeTicker)
+      .filter(Boolean);
+
+    if (symbols.length === 0) {
+      return res.status(400).json({
+        error: 'Informe ao menos um ticker válido no parâmetro symbols (ex: ?symbols=PETR4,VALE3)',
+      });
+    }
+
+    const quotes = await getQuotesV2(symbols);
+    return res.json({
+      count: quotes.length,
+      requestedSymbols: symbols,
+      results: quotes,
+    });
+  } catch (err) {
+    console.error('Error fetching v2 quotes:', err.message);
+    const statusCode = err.status || 500;
+    if (statusCode === 429 && err.retryAfter) {
+      res.setHeader('Retry-After', String(err.retryAfter));
+    }
+    return res.status(statusCode).json({
+      error: err.message,
+      code: err.code || 'UPSTREAM_ERROR',
+      ...(err.retryAfter ? { retryAfter: err.retryAfter } : {}),
+    });
+  }
+});
 
 // GET /api/macro — Banco Central SGS macro indicators (Selic, IPCA, PTAX USD)
 router.get('/macro', async (req, res) => {

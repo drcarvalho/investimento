@@ -12,12 +12,21 @@ from pathlib import Path
 ROOT_DIR = Path(__file__).resolve().parent.parent.parent
 STATIC_INDICATORS_PATH = ROOT_DIR / "backend" / "src" / "data" / "indicators-static.json"
 BRAPI_BASE = "https://brapi.dev/api"
+BRAPI_V2_BASE = "https://brapi.dev/api/v2"
 FREE_DETAILED_TICKERS = ["PETR4", "VALE3", "ITUB4", "MGLU3"]
+
+
+class BrapiError(Exception):
+    def __init__(self, message: str, status_code: int = 500, retry_after: int | None = None, code: str | None = None):
+        super().__init__(message)
+        self.status_code = status_code
+        self.retry_after = retry_after
+        self.code = code
 
 
 def _request_headers() -> dict[str, str]:
     token = os.environ.get("BRAPI_TOKEN", "").strip()
-    headers = {"Accept": "application/json", "User-Agent": "InvestAnalytics/1.0"}
+    headers = {"Accept": "application/json", "User-Agent": "InvestimentoFlash/1.0"}
     if token:
         headers["Authorization"] = f"Bearer {token}"
     return headers
@@ -28,8 +37,95 @@ def _fetch_json(url: str, timeout: int = 12) -> dict:
         url,
         headers=_request_headers(),
     )
-    with urllib.request.urlopen(req, timeout=timeout) as resp:
-        return json.loads(resp.read().decode("utf-8"))
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as resp:
+            return json.loads(resp.read().decode("utf-8"))
+    except urllib.error.HTTPError as e:
+        status_code = e.code
+        err_msg = ""
+        err_code = None
+        try:
+            err_body = json.loads(e.read().decode("utf-8"))
+            err_msg = err_body.get("message", "")
+            err_code = err_body.get("code")
+        except Exception:
+            pass
+
+        if status_code == 401:
+            msg = err_msg or "Token de autenticacao nao fornecido ou invalido (HTTP 401). Configure BRAPI_TOKEN."
+            raise BrapiError(msg, status_code=401, code=err_code or "UNAUTHORIZED") from e
+
+        if status_code == 404:
+            msg = err_msg or "Ativo nao encontrado na brapi (HTTP 404)."
+            raise BrapiError(msg, status_code=404, code=err_code or "NOT_FOUND") from e
+
+        if status_code == 429:
+            retry_header = e.headers.get("Retry-After") or e.headers.get("ratelimit-reset") or "60"
+            try:
+                retry_after_sec = int(retry_header)
+            except ValueError:
+                retry_after_sec = 60
+            msg = err_msg or f"Taxa limite excedida na brapi (HTTP 429). Tente novamente em {retry_after_sec}s."
+            raise BrapiError(msg, status_code=429, retry_after=retry_after_sec, code="RATE_LIMIT_EXCEEDED") from e
+
+        msg = err_msg or f"Brapi HTTP {status_code}"
+        raise BrapiError(msg, status_code=status_code, code=err_code) from e
+
+
+def fetch_v2_quotes(symbols: list[str]) -> list[dict]:
+    """Fetch live stock quotes via brapi.dev API v2 using the symbols query parameter."""
+    valid_symbols = [s.strip().upper() for s in symbols if s and s.strip()]
+    if not valid_symbols:
+        return []
+
+    encoded_symbols = ",".join(valid_symbols)
+    url = f"{BRAPI_V2_BASE}/stocks/quote?symbols={encoded_symbols}"
+    data = _fetch_json(url)
+
+    sanitized = []
+    for item in data.get("results", []):
+        if not isinstance(item, dict):
+            continue
+        d = item.get("data") or {}
+        sym = item.get("symbol") or item.get("requestedSymbol")
+        if not sym:
+            continue
+
+        def _to_num(val):
+            if val is None:
+                return None
+            try:
+                f = float(val)
+                return f if f == f else None
+            except (ValueError, TypeError):
+                return None
+
+        sanitized.append({
+            "symbol": sym,
+            "requestedSymbol": item.get("requestedSymbol") or sym,
+            "name": d.get("longName") or d.get("shortName") or sym,
+            "shortName": d.get("shortName"),
+            "longName": d.get("longName"),
+            "currency": d.get("currency") or "BRL",
+            "price": _to_num(d.get("regularMarketPrice")),
+            "change": _to_num(d.get("regularMarketChange")),
+            "changePercent": _to_num(d.get("regularMarketChangePercent")),
+            "dayHigh": _to_num(d.get("regularMarketDayHigh")),
+            "dayLow": _to_num(d.get("regularMarketDayLow")),
+            "dayRange": d.get("regularMarketDayRange"),
+            "open": _to_num(d.get("regularMarketOpen")),
+            "previousClose": _to_num(d.get("regularMarketPreviousClose")),
+            "volume": _to_num(d.get("regularMarketVolume")),
+            "marketCap": _to_num(d.get("marketCap")),
+            "fiftyTwoWeekLow": _to_num(d.get("fiftyTwoWeekLow")),
+            "fiftyTwoWeekHigh": _to_num(d.get("fiftyTwoWeekHigh")),
+            "fiftyTwoWeekRange": d.get("fiftyTwoWeekRange"),
+            "logoUrl": d.get("logourl") or f"https://icons.brapi.dev/icons/{sym}.svg",
+            "marketTime": d.get("regularMarketTime"),
+            "updatedAt": d.get("regularMarketTime") or datetime.now(timezone.utc).isoformat(),
+        })
+
+    return sanitized
 
 
 def sync_brapi_assets(conn: sqlite3.Connection) -> dict[str, int]:
