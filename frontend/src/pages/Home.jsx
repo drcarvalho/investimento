@@ -310,7 +310,7 @@ function Home() {
             )}
           </div>
           <p style={styles.pageSub}>
-            Panorama diário de cotações, juros e fundamentos oficiais (B3, CVM e Banco Central).
+            Cotações, curva macro e balanços oficiais da B3 em um só painel.
           </p>
         </div>
 

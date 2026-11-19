@@ -93,13 +93,10 @@ function Intelligence() {
     <div>
       <div style={styles.headerRow}>
         <div>
-          <span className="page-eyebrow">Análise Quantitativa · Critérios Auditáveis</span>
-          <h1 style={styles.title}>
-            <span style={{ color: 'var(--brand)', display: 'inline-flex' }}><ShieldCheckIcon size={22} /></span>
-            Inteligência Quantitativa & Radar Diário
-          </h1>
+          <span className="page-eyebrow">Modelo Quantitativo · 5 Pilares</span>
+          <h1 style={styles.title}>Ranking Quantitativo</h1>
           <p style={styles.subtitle}>
-            Classificação objetiva de empresas da B3 por valuation, rentabilidade, dividendos e alavancagem — com alertas de deterioração e histórico auditável.
+            Pontuação transparente por valuation, rentabilidade, dividendos, dívida e crescimento — com alertas de deterioração.
           </p>
         </div>
         <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>

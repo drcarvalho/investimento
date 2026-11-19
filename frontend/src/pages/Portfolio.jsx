@@ -273,7 +273,6 @@ function Portfolio() {
         <div>
           <span className="page-eyebrow">Acompanhamento Patrimonial</span>
           <h1 style={styles.title}>
-            <span style={{ color: 'var(--brand)', display: 'inline-flex' }}><WalletIcon size={22} /></span>
             Minha Carteira
           </h1>
           <p style={styles.subtitle}>
@@ -393,7 +392,7 @@ function Portfolio() {
               Registrar Aporte ou Nova Posição
             </strong>
             <div style={{ fontSize: '0.76rem', color: 'var(--text-muted)' }}>
-              Se o ativo já estiver na carteira, o preço médio ponderado é recalculado automaticamente.
+              Se o ativo já existir na carteira, o preço médio é recalculado automaticamente.
             </div>
           </div>
           {previewTotal != null && (
@@ -498,7 +497,7 @@ function Portfolio() {
               Sua carteira está vazia
             </h2>
             <p style={{ margin: '0 auto 1.15rem', fontSize: '0.86rem', color: 'var(--text-muted)', maxWidth: 480 }}>
-              Use o formulário acima para registrar suas ações, FIIs ou ETFs da B3 e acompanhar seu patrimônio e dividendos em tempo real.
+              Registre seus primeiros aportes acima para acompanhar patrimônio, rentabilidade e dividendos estimados.
             </p>
             <div style={{ display: 'flex', gap: '0.45rem', justifyContent: 'center', flexWrap: 'wrap' }}>
               {['PETR4', 'ITUB4', 'VALE3', 'MXRF11', 'BOVA11'].map((sym) => (

@@ -41,10 +41,10 @@ const PRIMARY_NAV_ITEMS = [
 ];
 
 const MORE_NAV_ITEMS = [
-  { path: '/recomendacoes', label: 'Recomendações', desc: 'Destaques e histórico do bot' },
-  { path: '/projecoes', label: 'Projeções', desc: 'Cenários de preço 3M / 6M / 1A' },
-  { path: '/estudos', label: 'Meus Estudos', desc: 'Teses salvas e listas' },
-  { path: '/sobre', label: 'Guia & Metodologia', desc: 'Critérios e fontes oficiais' },
+  { path: '/recomendacoes', label: 'Destaques Diários', desc: 'Seleção quantitativa e histórico' },
+  { path: '/projecoes', label: 'Projeções', desc: 'Cenários de preço em 3M, 6M e 1A' },
+  { path: '/estudos', label: 'Caderno de Teses', desc: 'Anotações e listas salvas' },
+  { path: '/sobre', label: 'Metodologia', desc: 'Critérios de cálculo e fontes' },
 ];
 
 const MOBILE_NAV_ITEMS = [
@@ -82,7 +82,7 @@ function NotFoundPage() {
         Página não encontrada
       </h1>
       <p style={{ margin: '0 0 1.4rem', fontSize: '0.9rem', color: 'var(--text-muted)' }}>
-        O endereço acessado não existe ou foi movido. Use os atalhos abaixo para continuar sua análise.
+        Este endereço não existe ou foi alterado. Volte ao painel principal ou busque um ativo.
       </p>
       <div style={{ display: 'flex', gap: '0.65rem', justifyContent: 'center', flexWrap: 'wrap' }}>
         <button type="button" className="btn btn-primary" onClick={() => navigate('/')}>
@@ -239,7 +239,7 @@ function Navbar({ theme, toggleTheme, onOpenPalette }) {
             >
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.45rem' }}>
                 <SearchIcon size={14} />
-                <span>Buscar ação...</span>
+                <span>Buscar ativo...</span>
               </span>
               <span className="cmd-kbd">Ctrl K</span>
             </button>
@@ -381,12 +381,12 @@ function AppShell({ theme, toggleTheme }) {
         <div className="footer-inner">
           <div>
             <strong style={{ color: 'var(--text-primary)' }}>Investimento Flash</strong>
-            <span> · Inteligência Financeira &amp; Estudos da B3</span>
+            <span> · Dados e análise fundamentalista da B3</span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
-            <span>Fontes: Banco Central (SGS), CVM e brapi.dev</span>
+            <span>Fontes oficiais: BCB (SGS), CVM e brapi.dev</span>
             <Link to="/sobre" className="footer-link">Metodologia</Link>
-            <span style={{ color: 'var(--text-subtle)' }}>Conteúdo estritamente informativo</span>
+            <span style={{ color: 'var(--text-subtle)' }}>Uso informativo — não constitui recomendação</span>
           </div>
         </div>
       </footer>

@@ -282,13 +282,10 @@ function Compare() {
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem', marginBottom: '0.75rem' }}>
         <div>
-          <span className="page-eyebrow">Comparação Lado a Lado</span>
-          <h1 style={styles.title}>
-            <span style={{ color: 'var(--brand)', display: 'inline-flex' }}><ScaleIcon size={22} /></span>
-            Comparador de Investimentos
-          </h1>
+          <span className="page-eyebrow">Análise Comparativa</span>
+          <h1 style={styles.title}>Comparador de Ativos</h1>
           <p style={styles.subtitle}>
-            Avalie até 5 ativos simultaneamente por múltiplos, rentabilidade, crescimento, dívida líquida, retorno histórico e pares do setor.
+            Coloque até 5 ativos lado a lado para comparar múltiplos, rentabilidade, dívida e retorno histórico.
           </p>
         </div>
         <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>

@@ -79,13 +79,10 @@ function Assets() {
     <div>
       <div style={styles.headerRow}>
         <div>
-          <div className="page-eyebrow">Fundos Listados na B3</div>
-          <h1 style={styles.title}>
-            <span style={{ color: 'var(--brand)', display: 'inline-flex' }}><BuildingIcon size={22} /></span>
-            Fundos Imobiliários (FIIs) & ETFs
-          </h1>
+          <div className="page-eyebrow">B3 · Fundos Listados</div>
+          <h1 style={styles.title}>FIIs e ETFs</h1>
           <p style={styles.subtitle}>
-            Cotações e liquidez em tempo real combinadas com P/VP e Dividend Yield oficiais do Informe Mensal da CVM.
+            Cotações em tempo real combinadas com P/VP e Dividend Yield oficiais da CVM.
           </p>
         </div>
         <button className="btn btn-ghost" onClick={() => loadAssets(assetType)}>

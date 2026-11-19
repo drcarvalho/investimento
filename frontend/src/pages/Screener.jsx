@@ -236,13 +236,10 @@ function Screener() {
     <div>
       <div style={styles.headerRow}>
         <div>
-          <span className="page-eyebrow">Filtro Fundamentalista · B3</span>
-          <h1 style={styles.title}>
-            <span style={{ color: 'var(--brand)', display: 'inline-flex' }}><FilterIcon size={22} /></span>
-            Screening de Ações
-          </h1>
+          <span className="page-eyebrow">B3 · Filtro Fundamentalista</span>
+          <h1 style={styles.title}>Filtro de Ações</h1>
           <p style={styles.subtitle}>
-            Encontre empresas da B3 por múltiplos de valuation, rentabilidade, dividendos e margem de segurança.
+            Filtre empresas listadas por P/L, P/VP, dividendos, rentabilidade e margem de segurança.
           </p>
         </div>
         <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
