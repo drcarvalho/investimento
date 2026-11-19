@@ -2545,3 +2545,35 @@ textarea:focus-visible {
   outline: 2px solid var(--brand) !important;
   outline-offset: 2px;
 }
+
+/* === Print / PDF Export Styles === */
+@media print {
+  .navbar,
+  .mobile-bottom-nav,
+  .ticker-tape,
+  .scroll-top-btn,
+  .app-footer,
+  .no-print,
+  .pf-table-toolbar,
+  form.card,
+  .btn {
+    display: none !important;
+  }
+
+  html, body {
+    background: #ffffff !important;
+    color: #111111 !important;
+    font-size: 11pt;
+  }
+
+  .app-main {
+    padding: 0 !important;
+    max-width: 100% !important;
+  }
+
+  .card {
+    border: 1px solid #d4d4d4 !important;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+}

@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { BuildingIcon, SearchIcon, StarIcon, RefreshIcon } from '../components/Icons';
+import { SearchIcon, StarIcon, RefreshIcon } from '../components/Icons';
 import StockLogo from '../components/StockLogo';
 import { useWatchlist } from '../hooks/useWatchlist';
 import { apiFetch } from '../api';

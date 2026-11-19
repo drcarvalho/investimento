@@ -1,5 +1,5 @@
 import React from 'react';
-import { BookOpenIcon, CalculatorIcon, ShieldCheckIcon, BarChartIcon } from '../components/Icons';
+import { CalculatorIcon, ShieldCheckIcon, BarChartIcon } from '../components/Icons';
 
 const GLOSSARY = [
   {
@@ -38,10 +38,7 @@ function Sobre() {
   return (
     <div style={{ maxWidth: '960px', margin: '0 auto' }}>
       <span className="page-eyebrow">Educação Financeira · Transparência</span>
-      <h1 style={styles.title}>
-        <span style={{ color: 'var(--brand)', display: 'inline-flex' }}><BookOpenIcon size={22} /></span>
-        Guia de Estudos & Metodologia
-      </h1>
+      <h1 style={styles.title}>Metodologia &amp; Fontes</h1>
       <p style={styles.subtitle}>
         Referência transparente das fórmulas de valuation, critérios do motor quantitativo, fontes oficiais e principais indicadores exibidos no Investimento Flash.
       </p>

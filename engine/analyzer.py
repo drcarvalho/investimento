@@ -28,6 +28,110 @@ WEIGHTS = {
 }
 
 
+FINANCIAL_SECTOR_KEYWORDS = (
+    "financeir",
+    "banco",
+    "seguro",
+    "previd",
+    "intermedi",
+)
+
+
+def _is_financial_sector(sector: str | None) -> bool:
+    s = (sector or "").strip().lower()
+    return any(k in s for k in FINANCIAL_SECTOR_KEYWORDS)
+
+
+def evaluate_fii(row: dict[str, Any], selic: float | None = None) -> dict[str, Any]:
+    """Dedicated transparent quantitative evaluation for B3 FIIs (P/VP, DY vs Selic, liquidity)."""
+    pvp = row.get("pvp")
+    dy = row.get("dy")
+    market_cap = row.get("market_cap")
+    volume = row.get("volume")
+
+    positives: list[str] = []
+    risks: list[str] = []
+    deterioration: list[str] = []
+
+    if pvp is None and dy is None:
+        return {
+            "symbol": row["symbol"],
+            "sector": row.get("sector") or "FII",
+            "score": 0.0,
+            "classification": "Dados Insuficientes",
+            "deterioration_flags": [],
+            "positives": [],
+            "risks": ["Sem P/VP ou Dividend Yield oficiais da CVM"],
+            "explanation": "Dados insuficientes para avaliação quantitativa do FII.",
+        }
+
+    # Valuation P/VP (max 40)
+    pvp_score = 0.0
+    if pvp is not None:
+        if pvp <= 0:
+            deterioration.append(f"P/VP inválido ({pvp:.2f}x)")
+        elif pvp <= 0.92:
+            pvp_score = 40.0
+            positives.append(f"FII com desconto patrimonial relevante (P/VP {pvp:.2f}x)")
+        elif pvp <= 1.03:
+            pvp_score = 32.0
+            positives.append(f"FII próximo ao valor patrimonial (P/VP {pvp:.2f}x)")
+        elif pvp <= 1.15:
+            pvp_score = 20.0
+        else:
+            pvp_score = 8.0
+            risks.append(f"Ágio elevado sobre o patrimônio (P/VP {pvp:.2f}x)")
+
+    # Dividend Yield (max 45)
+    dy_score = 0.0
+    if dy is not None:
+        if dy >= 11.0:
+            dy_score = 45.0
+            positives.append(f"DY mensalizado robusto ({dy:.2f}% a.a.)")
+        elif dy >= 8.5:
+            dy_score = 36.0
+            positives.append(f"DY consistente ({dy:.2f}% a.a.)")
+        elif dy >= 6.0:
+            dy_score = 22.0
+        elif dy > 0:
+            dy_score = 10.0
+            risks.append(f"DY abaixo da média de FIIs ({dy:.2f}% a.a.)")
+        else:
+            deterioration.append("Sem distribuição recente de rendimentos")
+        if selic is not None and dy >= selic * 0.85:
+            positives.append(f"Rendimento isento competitivo frente à Selic ({selic:.2f}%)")
+
+    # Scale & Liquidity (max 15)
+    liq_score = 8.0
+    if (market_cap is not None and market_cap >= 500_000_000) or (volume is not None and volume >= 1_000_000):
+        liq_score = 15.0
+        positives.append("Boa liquidez / porte patrimonial")
+    elif volume is not None and volume < 100_000:
+        liq_score = 4.0
+        risks.append("Liquidez diária reduzida")
+
+    total = round(min(100.0, pvp_score + dy_score + liq_score), 1)
+    if total >= 76 and not deterioration:
+        classification = "Oportunidade Forte"
+    elif total >= 60 and not deterioration:
+        classification = "Fundamentos Sólidos"
+    elif total >= 42:
+        classification = "Neutro / Acompanhar"
+    else:
+        classification = "Atenção / Risco Elevado"
+
+    return {
+        "symbol": row["symbol"],
+        "sector": row.get("sector") or "FII",
+        "score": total,
+        "classification": classification,
+        "deterioration_flags": deterioration,
+        "positives": positives[:5],
+        "risks": risks[:5],
+        "explanation": f"Pontuação FII {total}/100 ({classification}).",
+    }
+
+
 def _safe_median(values: list[float]) -> float | None:
     clean = [v for v in values if v is not None]
     return round(statistics.median(clean), 2) if clean else None
@@ -170,8 +274,19 @@ def evaluate_company(row: dict[str, Any], sector_medians: dict[str, float | None
             positives.append(f"DY competitivo frente à Selic ({selic:.2f}%)")
 
     # 4. Financial Health / Debt (max 15)
-    debt_score = 10.0  # neutral when N/A (e.g., banks where Net Debt/EBITDA does not apply)
-    if dl_ebitda is not None:
+    is_financial = _is_financial_sector(row.get("sector"))
+    debt_score = 10.0  # neutral when N/A
+    if is_financial:
+        # Net Debt/EBITDA does not apply to banks/insurers; derive pillar from ROE & P/VP solvency proxy
+        if roe is not None and roe >= 15 and (pvp is None or pvp > 0):
+            debt_score = 14.0
+            positives.append("Setor financeiro: rentabilidade sólida (Dív./EBITDA não aplicável)")
+        elif roe is not None and roe >= 10:
+            debt_score = 10.0
+        elif roe is not None and roe <= 0:
+            debt_score = 3.0
+            risks.append("Setor financeiro com ROE pressionado")
+    elif dl_ebitda is not None:
         is_net_cash = (dl is not None and dl < 0) or (
             dl is None and (ml is None or ml > 0) and (pl is None or pl > 0)
         )
@@ -266,6 +381,7 @@ def evaluate_company(row: dict[str, Any], sector_medians: dict[str, float | None
             "weights": WEIGHTS,
             "sectorMedians": sector_medians,
             "selicRef": selic,
+            "sectorModel": "financial" if is_financial else "standard",
         },
     }
 

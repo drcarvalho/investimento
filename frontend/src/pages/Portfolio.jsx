@@ -5,7 +5,6 @@ import {
   CheckCircleIcon,
   RefreshIcon,
   ScaleIcon,
-  WalletIcon,
   XIcon,
 } from '../components/Icons';
 import StockLogo from '../components/StockLogo';
@@ -296,6 +295,16 @@ function Portfolio() {
             style={{ fontSize: '0.8rem' }}
           >
             Exportar CSV
+          </button>
+          <button
+            type="button"
+            className="btn btn-ghost no-print"
+            onClick={() => window.print()}
+            disabled={positions.length === 0}
+            style={{ fontSize: '0.8rem' }}
+            title="Imprimir ou salvar resumo da carteira em PDF"
+          >
+            Imprimir / PDF
           </button>
           <button
             type="button"

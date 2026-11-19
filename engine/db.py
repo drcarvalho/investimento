@@ -212,6 +212,10 @@ PG_SCHEMA_STATEMENTS = [
         return_pct DOUBLE PRECISION,
         evaluated_at TEXT
     )""",
+    "CREATE INDEX IF NOT EXISTS idx_assets_type_sector ON assets(asset_type, sector)",
+    "CREATE INDEX IF NOT EXISTS idx_bot_recs_date_score ON bot_recommendations(run_date DESC, score DESC)",
+    "CREATE INDEX IF NOT EXISTS idx_dividends_symbol_date ON dividends(symbol, pay_date DESC)",
+    "CREATE INDEX IF NOT EXISTS idx_quant_rankings_score ON quant_rankings(score DESC)",
 ]
 
 
@@ -359,6 +363,11 @@ def ensure_schema(conn: sqlite3.Connection) -> None:
             return_pct REAL,
             evaluated_at TEXT
         );
+
+        CREATE INDEX IF NOT EXISTS idx_assets_type_sector ON assets(asset_type, sector);
+        CREATE INDEX IF NOT EXISTS idx_bot_recs_date_score ON bot_recommendations(run_date DESC, score DESC);
+        CREATE INDEX IF NOT EXISTS idx_dividends_symbol_date ON dividends(symbol, pay_date DESC);
+        CREATE INDEX IF NOT EXISTS idx_quant_rankings_score ON quant_rankings(score DESC);
         """
     )
     conn.commit()

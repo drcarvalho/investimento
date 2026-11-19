@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { BookOpenIcon, CheckCircleIcon, ChevronRightIcon, RefreshIcon, StarIcon, ScaleIcon, XIcon } from '../components/Icons';
+import { CheckCircleIcon, ChevronRightIcon, RefreshIcon, StarIcon, ScaleIcon, XIcon } from '../components/Icons';
 import StockLogo from '../components/StockLogo';
 import ViabilityBadge from '../components/ViabilityBadge';
 import { showToast } from '../components/Toast';
@@ -226,12 +226,9 @@ function Studies() {
       <div style={styles.headerRow}>
         <div>
           <span className="page-eyebrow">Acompanhamento Pessoal</span>
-          <h1 style={styles.title}>
-            <span style={{ color: 'var(--brand)', display: 'inline-flex' }}><BookOpenIcon size={22} /></span>
-            Meus Estudos & Teses
-          </h1>
+          <h1 style={styles.title}>Caderno de Teses</h1>
           <p style={styles.subtitle}>
-            Organize suas listas de acompanhamento e compare seu preço-alvo pessoal com a cotação atual de cada empresa.
+            Organize suas listas de acompanhamento e compare o preço-alvo de cada tese com a cotação atual.
           </p>
         </div>
         <button className="btn btn-ghost" onClick={loadData}>

@@ -152,3 +152,9 @@ SELECT setval(
   GREATEST((SELECT COALESCE(MAX(id), 1) FROM watchlists), 1)
 );
 
+
+-- Performance indexes for production queries
+CREATE INDEX IF NOT EXISTS idx_assets_sector ON assets (sector);
+CREATE INDEX IF NOT EXISTS idx_assets_type ON assets (asset_type);
+CREATE INDEX IF NOT EXISTS idx_quant_rankings_score ON quant_rankings (score DESC);
+CREATE INDEX IF NOT EXISTS idx_bot_recommendations_date_symbol ON bot_recommendations (run_date DESC, symbol);

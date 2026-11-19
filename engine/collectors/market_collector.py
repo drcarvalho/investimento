@@ -174,8 +174,17 @@ def sync_brapi_assets(conn: sqlite3.Connection) -> dict[str, int]:
                 ),
             )
 
-    # 4. Live detailed fundamentals + real price history + REAL DIVIDENDS for free brapi tickers
-    for sym in FREE_DETAILED_TICKERS:
+    # 4. Live detailed fundamentals + real price history + REAL DIVIDENDS
+    detailed_tickers = list(FREE_DETAILED_TICKERS)
+    if os.environ.get("BRAPI_TOKEN", "").strip():
+        extra_env = os.environ.get("BRAPI_DETAILED_TICKERS", "").strip()
+        if extra_env:
+            for raw_sym in extra_env.split(","):
+                cleaned = raw_sym.strip().upper()
+                if cleaned and cleaned not in detailed_tickers:
+                    detailed_tickers.append(cleaned)
+
+    for sym in detailed_tickers:
         try:
             url = f"{BRAPI_BASE}/quote/{sym}?range=3mo&interval=1d&dividends=true&modules=summaryProfile,defaultKeyStatistics,financialData"
             res = _fetch_json(url)
@@ -250,7 +259,7 @@ def sync_brapi_assets(conn: sqlite3.Connection) -> dict[str, int]:
                     round(q["priceEarnings"], 2) if q.get("priceEarnings") else None,
                     round(stats["priceToBook"], 2) if stats.get("priceToBook") else None,
                     round(stats["enterpriseToEbitda"], 2) if stats.get("enterpriseToEbitda") else None,
-                    round(dy_raw * 100, 2) if dy_raw is not None else None,
+                    round(dy_raw * 100 if abs(dy_raw) <= 1 else dy_raw, 2) if dy_raw is not None else None,
                     round(fin["returnOnEquity"] * 100, 2) if fin.get("returnOnEquity") is not None else None,
                     round(fin["returnOnAssets"] * 100, 2) if fin.get("returnOnAssets") is not None else None,
                     round(fin["profitMargins"] * 100, 2) if fin.get("profitMargins") is not None else None,

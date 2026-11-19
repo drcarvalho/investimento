@@ -86,6 +86,10 @@ def sync_cvm_fiis(conn: sqlite3.Connection, year: int | None = None) -> int:
                     if cnpj not in cnpj_info:
                         continue
                     ref_date = (row.get("Data_Referencia") or "").strip()
+                    try:
+                        versao = int(str(row.get("Versao") or "0").strip())
+                    except ValueError:
+                        versao = 0
                     vp_cota = _to_float(row.get("Valor_Patrimonial_Cotas"))
                     dy_mes = _to_float(row.get("Percentual_Dividend_Yield_Mes"))
                     pl = _to_float(row.get("Patrimonio_Liquido"))
@@ -93,6 +97,7 @@ def sync_cvm_fiis(conn: sqlite3.Connection, year: int | None = None) -> int:
                         comp_by_cnpj.setdefault(cnpj, []).append(
                             {
                                 "ref_date": ref_date,
+                                "versao": versao,
                                 "vp_cota": vp_cota,
                                 "dy_mes": dy_mes,
                                 "pl": pl,
@@ -110,8 +115,12 @@ def sync_cvm_fiis(conn: sqlite3.Connection, year: int | None = None) -> int:
         entries = comp_by_cnpj.get(cnpj)
         if not entries:
             continue
-        # Deduplicate by ref_date keeping latest version & sort chronologically
-        by_date = {e["ref_date"]: e for e in entries}
+        # Deduplicate by ref_date keeping highest restatement version & sort chronologically
+        by_date: dict[str, dict] = {}
+        for e in entries:
+            prev = by_date.get(e["ref_date"])
+            if prev is None or e.get("versao", 0) >= prev.get("versao", 0):
+                by_date[e["ref_date"]] = e
         ordered = [by_date[d] for d in sorted(by_date.keys())]
         latest = ordered[-1]
 
@@ -126,8 +135,9 @@ def sync_cvm_fiis(conn: sqlite3.Connection, year: int | None = None) -> int:
             else None
         )
 
-        # Annualize average monthly DY reported by CVM (CVM reports decimal ratio, e.g. 0.0101 = 1.01%/month)
-        monthly_dys = [e["dy_mes"] for e in ordered if e["dy_mes"] is not None and 0 <= e["dy_mes"] <= 0.15]
+        # Annualize average monthly DY over the trailing 12 months reported by CVM
+        recent_12m = ordered[-12:]
+        monthly_dys = [e["dy_mes"] for e in recent_12m if e["dy_mes"] is not None and 0 <= e["dy_mes"] <= 0.15]
         dy_annual = None
         if monthly_dys:
             avg_monthly = sum(monthly_dys) / len(monthly_dys)

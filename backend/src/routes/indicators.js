@@ -85,13 +85,29 @@ function enrichAnalysis(data) {
       reasons.push('Foco menor em dividendos (DY < 3%)');
     }
 
-    if (dividaEbitda == null || dividaEbitda <= 2.5) {
-      score += 20;
-      if (dividaEbitda != null && dividaEbitda < 0) {
+    const sectorLower = String(data.sector || '').toLowerCase();
+    const isFinancial = /financeir|banco|seguro|previd|intermedi/.test(sectorLower);
+    const dividaLiquida = data.endividamento?.dividaLiquida;
+    const margemLiquida = data.rentabilidade?.margemLiquida;
+
+    if (isFinancial) {
+      score += roe != null && roe >= 10 ? 20 : 10;
+      reasons.push('Setor financeiro (Dív. Líq./EBITDA não aplicável)');
+    } else if (dividaEbitda == null) {
+      score += 15;
+    } else if (dividaEbitda < 0) {
+      const isNetCash =
+        (dividaLiquida != null && dividaLiquida < 0) ||
+        (dividaLiquida == null && (margemLiquida == null || margemLiquida > 0) && (pl == null || pl > 0));
+      if (isNetCash) {
+        score += 20;
         reasons.push('Caixa líquido positivo (dívida líquida negativa)');
-      } else if (dividaEbitda != null) {
-        reasons.push('Endividamento controlado (Dív. Líq./EBITDA ≤ 2,5)');
+      } else {
+        reasons.push('EBITDA negativo com endividamento');
       }
+    } else if (dividaEbitda <= 2.5) {
+      score += 20;
+      reasons.push('Endividamento controlado (Dív. Líq./EBITDA ≤ 2,5)');
     } else if (dividaEbitda <= 3.5) {
       score += 10;
       reasons.push('Endividamento moderado');
@@ -190,9 +206,10 @@ async function fetchLiveIndicators(symbol, dbFund) {
       : dbFund?.divida_liquida_ebitda ?? fallback.endividamento?.dividaLiquidaEbitda ?? null;
 
   const dyRaw = stats.dividendYield ?? stats.yield;
+  const dyNormalized = dyRaw != null ? (Math.abs(dyRaw) <= 1 ? dyRaw * 100 : dyRaw) : null;
   const dividendYield =
-    dyRaw != null
-      ? Number((dyRaw * 100).toFixed(2))
+    dyNormalized != null
+      ? Number(dyNormalized.toFixed(2))
       : dbFund?.dy ?? fallback.valuation?.dividendYield ?? null;
 
   const pl = q.priceEarnings ?? stats.trailingPE ?? dbFund?.pl ?? fallback.valuation?.pl ?? null;
@@ -239,13 +256,13 @@ async function fetchLiveIndicators(symbol, dbFund) {
       lucro: financial.earningsGrowth != null ? Number((financial.earningsGrowth * 100).toFixed(2)) : (dbFund?.crescimento_lucro ?? null),
     },
     financials: {
-      totalRevenue: financial.totalRevenue || dbFund?.receita_liquida || null,
-      ebitda: financial.ebitda || null,
-      totalCash: financial.totalCash || null,
-      totalDebt: financial.totalDebt || null,
-      freeCashflow: financial.freeCashflow || null,
-      netIncome: dbFund?.lucro_liquido || null,
-      equity: dbFund?.patrimonio_liquido || null,
+      totalRevenue: financial.totalRevenue ?? dbFund?.receita_liquida ?? null,
+      ebitda: financial.ebitda ?? null,
+      totalCash: financial.totalCash ?? null,
+      totalDebt: financial.totalDebt ?? null,
+      freeCashflow: financial.freeCashflow ?? null,
+      netIncome: dbFund?.lucro_liquido ?? null,
+      equity: dbFund?.patrimonio_liquido ?? null,
     },
     price: q.regularMarketPrice,
     change: q.regularMarketChangePercent,
@@ -322,7 +339,7 @@ router.get('/', async (req, res) => {
     }
     if (maxPvp !== undefined && maxPvp !== '') {
       const v = parseFloat(maxPvp);
-      if (!isNaN(v)) items = items.filter((s) => s.valuation.pvp != null && s.valuation.pvp <= v);
+      if (!isNaN(v)) items = items.filter((s) => s.valuation.pvp != null && s.valuation.pvp > 0 && s.valuation.pvp <= v);
     }
     if (viability && viability !== 'Todos') {
       items = items.filter((s) => s.viability.status === viability);
@@ -479,7 +496,29 @@ router.get('/:symbol', async (req, res) => {
       return res.json(enrichAnalysis(merged));
     }
 
-    // 4. Stock, FII or ETF exists on live B3 list (never invent missing indicators -> null)
+    // 3b. Fallback to persisted DB assets table when live upstream is unreachable
+    if (!liveItem) {
+      const dbAsset = await db.getAsync(
+        'SELECT symbol, name, asset_type, sector, subsector, logo, price, change_pct, volume, market_cap FROM assets WHERE symbol = ?',
+        [symbol]
+      ).catch(() => null);
+      if (dbAsset) {
+        liveItem = {
+          symbol: dbAsset.symbol,
+          name: dbAsset.name,
+          sector: dbAsset.sector,
+          subsector: dbAsset.subsector,
+          price: dbAsset.price,
+          change: dbAsset.change_pct,
+          volume: dbAsset.volume,
+          marketCap: dbAsset.market_cap,
+          logo: dbAsset.logo,
+        };
+        detectedType = dbAsset.asset_type || detectedType;
+      }
+    }
+
+    // 4. Stock, FII or ETF exists on live B3 list or DB cache (never invent missing indicators -> null)
     if (liveItem) {
       const basicLive = applyDbFundamentals(
         {

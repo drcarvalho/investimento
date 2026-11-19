@@ -35,7 +35,9 @@ export function useWatchlist() {
     const current = readStored();
     const exists = current.includes(sym);
     const next = exists ? current.filter((s) => s !== sym) : [...current, sym].slice(0, 50);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+    } catch {}
     setWatchlist(next);
     window.dispatchEvent(new Event('watchlist-updated'));
     showToast(

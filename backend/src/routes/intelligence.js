@@ -468,11 +468,10 @@ function buildProjections(price, metrics, st) {
   const graham = calcGraham(price, pl, pvp);
   const bazin = calcBazin(price, dy);
 
-  // 2. Upside/downside to fair values
-  const grahamUpside = graham ? (graham - price) / price : 0;
-  const bazinUpside = bazin ? (bazin - price) / price : 0;
-  // Blended fair-value signal (average of available)
-  const fairTargets = [grahamUpside, bazinUpside].filter((v) => v !== 0);
+  // 2. Upside/downside to fair values (keep explicit 0 upside as valid target)
+  const grahamUpside = graham != null ? (graham - price) / price : null;
+  const bazinUpside = bazin != null ? (bazin - price) / price : null;
+  const fairTargets = [grahamUpside, bazinUpside].filter((v) => v !== null);
   const avgFairUpside = fairTargets.length > 0
     ? fairTargets.reduce((a, b) => a + b, 0) / fairTargets.length
     : 0;
@@ -483,15 +482,17 @@ function buildProjections(price, metrics, st) {
   // 4. Dividend contribution to total return
   const annualDivReturn = dy / 100;
 
-  // 5. Risk factor from leverage
+  // 5. Risk factor from leverage (exempt financial/banking sector where Net Debt/EBITDA does not apply)
+  const sectorLower = String(st?.sector || '').toLowerCase();
+  const isFinancialSector = /financeir|banco|seguro|previd|intermedi/.test(sectorLower);
   let debtRisk = 0;
-  if (divEbitda != null) {
+  if (!isFinancialSector && divEbitda != null) {
     if (divEbitda > 4) debtRisk = 0.15;
     else if (divEbitda > 3) debtRisk = 0.10;
     else if (divEbitda > 2.5) debtRisk = 0.05;
   }
   // Negative P/L means company is losing money — extra risk
-  const earningsRisk = (pl && pl < 0) ? 0.15 : 0;
+  const earningsRisk = (pl != null && pl < 0) ? 0.15 : 0;
   const totalRisk = debtRisk + earningsRisk;
 
   // 6. Build scenarios for each horizon
@@ -513,30 +514,33 @@ function buildProjections(price, metrics, st) {
     const reversionFactor = h.months === 3 ? 0.20 : h.months === 6 ? 0.45 : 0.75;
     const reversionReturn = avgFairUpside * reversionFactor;
 
-    // Bull: full organic + reversion + dividend + extra momentum
-    const bull = reversionReturn + organicGrowth + divIncome + (organicGrowth * 0.3);
+    // Bull: full positive reversion (no extra penalty if overvalued) + organic + dividend + momentum
+    const rawBull = Math.max(0, reversionReturn) + organicGrowth + divIncome + (organicGrowth * 0.3);
     // Base: half reversion + organic + dividend
-    const base = (reversionReturn * 0.5) + organicGrowth + divIncome;
-    // Bear: no positive reversion + risk discount + macro drag
-    const bear = -totalRisk * t - (Math.abs(reversionReturn) * 0.3 * (avgFairUpside < 0 ? 1 : 0)) + (divIncome * 0.5);
+    const rawBase = (reversionReturn * 0.5) + organicGrowth + divIncome;
+    // Bear: no positive reversion + downside reversion pressure + risk discount + partial dividends
+    const rawBear = -totalRisk * t - (avgFairUpside < 0 ? Math.abs(reversionReturn) * 0.75 : 0) + (divIncome * 0.5);
 
-    // Clamp to reasonable bounds (-60% to +120% per period)
+    // Clamp to reasonable bounds (-60% to +120% per period) and guarantee monotonic bull >= base >= bear
     const clamp = (v) => Math.max(-0.60, Math.min(1.20, v));
+    const base = clamp(rawBase);
+    const bull = Math.max(base, clamp(rawBull));
+    const bear = Math.min(base, clamp(rawBear));
 
     return {
       horizon: h.label,
       months: h.months,
       bull: {
-        returnPct: Number((clamp(bull) * 100).toFixed(1)),
-        price: Number((price * (1 + clamp(bull))).toFixed(2)),
+        returnPct: Number((bull * 100).toFixed(1)),
+        price: Number((price * (1 + bull)).toFixed(2)),
       },
       base: {
-        returnPct: Number((clamp(base) * 100).toFixed(1)),
-        price: Number((price * (1 + clamp(base))).toFixed(2)),
+        returnPct: Number((base * 100).toFixed(1)),
+        price: Number((price * (1 + base)).toFixed(2)),
       },
       bear: {
-        returnPct: Number((clamp(bear) * 100).toFixed(1)),
-        price: Number((price * (1 + clamp(bear))).toFixed(2)),
+        returnPct: Number((bear * 100).toFixed(1)),
+        price: Number((price * (1 + bear)).toFixed(2)),
       },
     };
   });
@@ -740,7 +744,7 @@ router.get('/sector-peers/:symbol', async (req, res) => {
     }
 
     const dbPeers = await db.allAsync(
-      'SELECT symbol, name FROM assets WHERE sector = ? AND symbol != ? ORDER BY market_cap DESC LIMIT 6',
+      'SELECT symbol, name FROM assets WHERE sector = ? AND symbol != ? ORDER BY COALESCE(market_cap, 0) DESC LIMIT 6',
       [targetSector, symbol]
     );
 
@@ -766,6 +770,9 @@ router.get('/sector-peers/:symbol', async (req, res) => {
 
 // POST /api/intelligence/run — Safely trigger Python Quant Engine from the Portal UI
 router.post('/run', (req, res) => {
+  if (String(process.env.READ_ONLY_MODE || '').toLowerCase() === 'true') {
+    return res.status(403).json({ error: 'Portal em modo somente leitura' });
+  }
   const adminKey = (process.env.ADMIN_API_KEY || '').trim();
   const providedKey =
     req.headers['x-api-key'] ||

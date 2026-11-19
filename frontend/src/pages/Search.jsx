@@ -49,13 +49,10 @@ function Search() {
 
   return (
     <div style={{ maxWidth: '880px', margin: '0 auto' }}>
-      <span className="page-eyebrow">Pesquisa de Ativos · B3</span>
-      <h1 style={styles.title}>
-        <span style={{ color: 'var(--brand)', display: 'inline-flex' }}><SearchIcon size={22} /></span>
-        Explorar Ativos da B3
-      </h1>
+      <span className="page-eyebrow">B3 · Pesquisa Global</span>
+      <h1 style={styles.title}>Buscar Ativos</h1>
       <p style={styles.subtitle}>
-        Pesquise em tempo real por ticker, nome da empresa ou setor econômico.
+        Pesquise ações, FIIs e ETFs por ticker, nome ou setor.
       </p>
 
       <div style={{ position: 'relative', marginBottom: '0.85rem' }}>

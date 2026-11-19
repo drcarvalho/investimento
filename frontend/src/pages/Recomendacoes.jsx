@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { TrophyIcon, ShieldCheckIcon, BarChartIcon, BookOpenIcon, ScaleIcon, InfoIcon, TrendingUpIcon } from '../components/Icons';
+import { BarChartIcon, BookOpenIcon, ScaleIcon, InfoIcon, TrendingUpIcon } from '../components/Icons';
 import StockLogo from '../components/StockLogo';
 import { apiFetch } from '../api';
 
@@ -96,14 +96,10 @@ function Recomendacoes() {
       {/* Header */}
       <div style={styles.headerRow}>
         <div>
-          <span className="page-eyebrow">Educação · 10 Ativos para Estudar</span>
-          <h1 style={styles.title}>
-            <span style={{ color: 'var(--positive)', display: 'inline-flex' }}><TrophyIcon size={22} /></span>
-            Recomendações de Estudo
-          </h1>
+          <span className="page-eyebrow">Seleção Quantitativa · Top 10</span>
+          <h1 style={styles.title}>Destaques de Estudo</h1>
           <p style={styles.subtitle}>
-            Os 10 ativos com melhor pontuação fundamentalista para você <strong>estudar e aprender</strong> sobre análise de investimentos.
-            Cada card explica <em>por que</em> o ativo se destaca, com cálculos inteligentes de subidas e descidas projetadas para 3M, 6M e 1A.
+            As 10 empresas mais bem pontuadas pelo modelo fundamentalista, com justificativa dos pilares e cenários para 3M, 6M e 1A.
           </p>
         </div>
         <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginTop: '0.65rem' }}>

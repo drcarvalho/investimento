@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FilterIcon, ScaleIcon, StarIcon, XIcon, RefreshIcon } from '../components/Icons';
+import { ScaleIcon, StarIcon, XIcon, RefreshIcon } from '../components/Icons';
 import ViabilityBadge from '../components/ViabilityBadge';
 import { showToast } from '../components/Toast';
 import { useWatchlist } from '../hooks/useWatchlist';

@@ -7,7 +7,6 @@ import SectorPerformance from '../components/SectorPerformance';
 import ViabilityBadge from '../components/ViabilityBadge';
 import StockLogo from '../components/StockLogo';
 import {
-  SearchIcon,
   RefreshIcon,
   ScaleIcon,
   StarIcon,
@@ -17,9 +16,7 @@ import {
 import { useWatchlist } from '../hooks/useWatchlist';
 import { useRecentStocks } from '../hooks/useRecentStocks';
 import { apiFetch } from '../api';
-import { sanitizeTicker } from '../utils/security';
 import { fmtNum, fmtVol, fmtMacroVal } from '../utils/format';
-import { showToast } from '../components/Toast';
 
 const MARKET_TABS = [
   { key: 'acoes', label: 'Ações B3' },
@@ -98,9 +95,6 @@ function Home() {
   const [sortCol, setSortCol] = React.useState('default');
   const [sortDir, setSortDir] = React.useState('desc');
 
-  const [searchTerm, setSearchTerm] = React.useState('');
-  const [suggestions, setSuggestions] = React.useState([]);
-  const [activeIdx, setActiveIdx] = React.useState(-1);
 
   const fetchAll = React.useCallback((manual = false) => {
     if (manual) setRefreshing(true);
@@ -151,59 +145,6 @@ function Home() {
         .finally(() => setEtfsLoaded(true));
     }
   }, [marketTab, fiisLoaded, etfsLoaded]);
-
-  // Autocomplete search
-  React.useEffect(() => {
-    const q = searchTerm.trim();
-    if (q.length < 2) {
-      setSuggestions([]);
-      setActiveIdx(-1);
-      return;
-    }
-    const controller = new AbortController();
-    const timer = setTimeout(() => {
-      apiFetch(`/api/search?q=${encodeURIComponent(q)}`, { signal: controller.signal })
-        .then((d) => {
-          setSuggestions((d.results || []).slice(0, 6));
-          setActiveIdx(-1);
-        })
-        .catch(() => {});
-    }, 220);
-    return () => {
-      clearTimeout(timer);
-      controller.abort();
-    };
-  }, [searchTerm]);
-
-  const handleKeyDown = (e) => {
-    if (suggestions.length === 0) return;
-    if (e.key === 'ArrowDown') {
-      e.preventDefault();
-      setActiveIdx((i) => Math.min(i + 1, suggestions.length - 1));
-    } else if (e.key === 'ArrowUp') {
-      e.preventDefault();
-      setActiveIdx((i) => Math.max(i - 1, -1));
-    } else if (e.key === 'Enter' && activeIdx >= 0) {
-      e.preventDefault();
-      const chosen = suggestions[activeIdx];
-      setSuggestions([]);
-      navigate(`/acoes/${chosen.symbol}`);
-    } else if (e.key === 'Escape') {
-      setSuggestions([]);
-      setActiveIdx(-1);
-    }
-  };
-
-  const handleSearchSubmit = (e) => {
-    e.preventDefault();
-    const ticker = sanitizeTicker(searchTerm);
-    if (!ticker) {
-      showToast('Digite um ticker válido da B3 (ex: PETR4, VALE3, MXRF11).', 'error');
-      return;
-    }
-    setSuggestions([]);
-    navigate(`/acoes/${ticker}`);
-  };
 
   const handleSort = (col) => {
     if (sortCol === col) {

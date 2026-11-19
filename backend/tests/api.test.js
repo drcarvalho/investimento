@@ -190,17 +190,28 @@ test('GET /api/metrics enforces METRICS_TOKEN when configured', async () => {
   }
 });
 
-test('POST /api/intelligence/run enforces ADMIN_API_KEY when configured', async () => {
+test('POST /api/intelligence/run enforces ADMIN_API_KEY independently of WRITE_API_KEY and honors READ_ONLY_MODE', async () => {
   process.env.ADMIN_API_KEY = 'secret-admin-456';
+  process.env.WRITE_API_KEY = 'different-write-789';
   try {
     const unauth = await fetch(`${baseUrl}/api/intelligence/run`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'X-API-Key': 'different-write-789' },
       body: JSON.stringify({}),
     });
     assert.equal(unauth.status, 401);
+
+    process.env.READ_ONLY_MODE = 'true';
+    const ro = await fetch(`${baseUrl}/api/intelligence/run`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-API-Key': 'secret-admin-456' },
+      body: JSON.stringify({}),
+    });
+    assert.equal(ro.status, 403);
   } finally {
     delete process.env.ADMIN_API_KEY;
+    delete process.env.WRITE_API_KEY;
+    delete process.env.READ_ONLY_MODE;
   }
 });
 

@@ -89,11 +89,17 @@ def _parse_and_persist_cvm(conn: sqlite3.Connection, raw_zip: bytes, doc_type: s
     doc_lower = doc_type.lower()
     doc_upper = doc_type.upper()
 
+    def _parse_versao(raw_v: str | None) -> int:
+        try:
+            return int(str(raw_v or "0").strip())
+        except ValueError:
+            return 0
+
     dre_data: dict[str, dict[str, dict[str, float]]] = {}
-    dre_latest_dt: dict[tuple[str, str], str] = {}
+    dre_latest_key: dict[tuple[str, str], tuple[str, int]] = {}
     latest_ref_date: dict[str, str] = {}
     equity_data: dict[str, float] = {}
-    equity_latest_dt: dict[str, str] = {}
+    equity_latest_key: dict[str, tuple[str, int]] = {}
 
     with zipfile.ZipFile(io.BytesIO(raw_zip)) as zf:
         dre_name = f"{doc_lower}_cia_aberta_DRE_con_{target_year}.csv"
@@ -112,12 +118,14 @@ def _parse_and_persist_cvm(conn: sqlite3.Connection, raw_zip: bytes, doc_type: s
                     if ordem not in ("ÚLTIMO", "PENÚLTIMO"):
                         continue
                     dt_fim = (row.get("DT_FIM_EXERC") or "").strip()
-                    # Keep the most recent reference date for each (ticker, ordem)
-                    prev_ordem_dt = dre_latest_dt.get((ticker, ordem), "")
-                    if dt_fim < prev_ordem_dt:
+                    ver = _parse_versao(row.get("VERSAO"))
+                    cur_key = (dt_fim, ver)
+                    # Keep the most recent reference date and highest restatement version
+                    prev_key = dre_latest_key.get((ticker, ordem), ("", -1))
+                    if cur_key < prev_key:
                         continue
-                    if dt_fim > prev_ordem_dt:
-                        dre_latest_dt[(ticker, ordem)] = dt_fim
+                    if cur_key > prev_key:
+                        dre_latest_key[(ticker, ordem)] = cur_key
                         dre_data.setdefault(ticker, {})[ordem] = {}
                     if ordem == "ÚLTIMO" and dt_fim > latest_ref_date.get(ticker, ""):
                         latest_ref_date[ticker] = dt_fim
@@ -141,13 +149,15 @@ def _parse_and_persist_cvm(conn: sqlite3.Connection, raw_zip: bytes, doc_type: s
                     if (row.get("ORDEM_EXERC") or "").strip().upper() != "ÚLTIMO":
                         continue
                     dt_fim = (row.get("DT_FIM_EXERC") or "").strip()
-                    if dt_fim < equity_latest_dt.get(ticker, ""):
+                    ver = _parse_versao(row.get("VERSAO"))
+                    cur_key = (dt_fim, ver)
+                    if cur_key < equity_latest_key.get(ticker, ("", -1)):
                         continue
                     try:
                         val = float(row.get("VL_CONTA") or 0) * _parse_scale(row.get("ESCALA_MOEDA", ""))
                     except ValueError:
                         continue
-                    equity_latest_dt[ticker] = dt_fim
+                    equity_latest_key[ticker] = cur_key
                     equity_data[ticker] = val
 
     now = datetime.now(timezone.utc).isoformat()
@@ -162,9 +172,13 @@ def _parse_and_persist_cvm(conn: sqlite3.Connection, raw_zip: bytes, doc_type: s
         ni_prev = prev.get("3.11")
         eq = equity_data.get(ticker)
 
-        rev_growth = round(((rev_curr - rev_prev) / abs(rev_prev)) * 100, 2) if (rev_curr is not None and rev_prev) else None
-        ni_growth = round(((ni_curr - ni_prev) / abs(ni_prev)) * 100, 2) if (ni_curr is not None and ni_prev and ni_prev > 0) else None
-        net_margin = round((ni_curr / rev_curr) * 100, 2) if (ni_curr is not None and rev_curr) else None
+        rev_growth = (
+            round(((rev_curr - rev_prev) / rev_prev) * 100, 2)
+            if (rev_curr is not None and rev_curr > 0 and rev_prev is not None and rev_prev > 0)
+            else None
+        )
+        ni_growth = round(((ni_curr - ni_prev) / ni_prev) * 100, 2) if (ni_curr is not None and ni_prev is not None and ni_prev > 0) else None
+        net_margin = round((ni_curr / rev_curr) * 100, 2) if (ni_curr is not None and rev_curr is not None and rev_curr > 0) else None
         # Only compute annual ROE from DFP (ITR is partial-year net income)
         roe = (
             round((ni_curr / eq) * 100, 2)

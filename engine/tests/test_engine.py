@@ -8,7 +8,7 @@ import unittest
 from pathlib import Path
 
 from engine.db import get_connection
-from engine.analyzer import evaluate_company, run_quantitative_analysis
+from engine.analyzer import evaluate_company, evaluate_fii, run_quantitative_analysis
 from engine.collectors.cvm_fii_collector import _isin_to_fii_ticker
 from engine.collectors.cvm_collector import CNPJ_TO_TICKER
 from engine.collectors.market_collector import _request_headers
@@ -194,6 +194,63 @@ class EngineTests(unittest.TestCase):
         empty = evaluate_company({"symbol": "EMPTY3", "sector": "Outros"}, {})
         self.assertEqual(empty["score"], 0.0)
         self.assertEqual(empty["classification"], "Dados Insuficientes")
+
+
+
+    def test_evaluate_financial_sector_and_fii(self):
+        bank = evaluate_company(
+            {"symbol": "ITUB4", "sector": "Financeiro", "pl": 9.0, "pvp": 1.6, "dy": 7.0, "roe": 21.0, "margem_liquida": 22.0, "divida_liquida_ebitda": 9.5},
+            {"pl": 10.0},
+            selic=10.5,
+        )
+        self.assertEqual(bank["criteria"]["sectorModel"], "financial")
+        self.assertEqual(bank["debt_score"], 14.0)
+        self.assertFalse(any("Alavancagem elevada" in f for f in bank["deterioration_flags"]))
+
+        fii = evaluate_fii({"symbol": "HGLG11", "sector": "Logística", "pvp": 0.90, "dy": 11.2, "market_cap": 1_200_000_000}, selic=10.5)
+        self.assertGreaterEqual(fii["score"], 80.0)
+        self.assertEqual(fii["classification"], "Oportunidade Forte")
+
+
+
+    def test_db_creates_analytical_indexes_and_cvm_restatement(self):
+        import io, zipfile
+        from engine.collectors.cvm_collector import _parse_and_persist_cvm
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            conn = get_connection(Path(tmpdir) / "idx.db")
+            try:
+                idx_rows = conn.execute("SELECT name FROM sqlite_master WHERE type='index'").fetchall()
+                idx_names = {r["name"] for r in idx_rows}
+                for expected in (
+                    "idx_assets_type_sector",
+                    "idx_bot_recs_date_score",
+                    "idx_dividends_symbol_date",
+                    "idx_quant_rankings_score",
+                ):
+                    self.assertIn(expected, idx_names)
+
+                # Build synthetic CVM DFP zip with two restatement versions on same date
+                buf = io.BytesIO()
+                with zipfile.ZipFile(buf, "w") as zf:
+                    dre_csv = (
+                        "CNPJ_CIA;CD_CONTA;ORDEM_EXERC;DT_FIM_EXERC;VERSAO;VL_CONTA;ESCALA_MOEDA\n"
+                        "33.000.167/0001-01;3.01;ÚLTIMO;2025-12-31;2;2000;MIL\n"
+                        "33.000.167/0001-01;3.01;ÚLTIMO;2025-12-31;1;1000;MIL\n"
+                        "33.000.167/0001-01;3.11;ÚLTIMO;2025-12-31;2;400;MIL\n"
+                        "33.000.167/0001-01;3.01;PENÚLTIMO;2024-12-31;2;1600;MIL\n"
+                        "33.000.167/0001-01;3.11;PENÚLTIMO;2024-12-31;2;320;MIL\n"
+                    )
+                    zf.writestr("dfp_cia_aberta_DRE_con_2025.csv", dre_csv.encode("latin-1"))
+                updated = _parse_and_persist_cvm(conn, buf.getvalue(), "DFP", 2025)
+                self.assertEqual(updated, 1)
+                row = conn.execute("SELECT * FROM fundamentals WHERE symbol = 'PETR4'").fetchone()
+                # Must keep VERSAO 2 (2_000_000 revenue, 20% margin, 25% rev growth)
+                self.assertAlmostEqual(row["receita_liquida"], 2_000_000.0)
+                self.assertAlmostEqual(row["margem_liquida"], 20.0)
+                self.assertAlmostEqual(row["crescimento_receita"], 25.0)
+            finally:
+                conn.close()
 
 
 if __name__ == "__main__":

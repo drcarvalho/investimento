@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { TrendingUpIcon, TrendingDownIcon, ShieldCheckIcon, BarChartIcon, BookOpenIcon, InfoIcon } from '../components/Icons';
+import { BarChartIcon, BookOpenIcon, InfoIcon } from '../components/Icons';
 import StockLogo from '../components/StockLogo';
 import { apiFetch } from '../api';
 
@@ -93,14 +93,10 @@ function Projecoes() {
       {/* Header */}
       <div style={styles.headerRow}>
         <div>
-          <span className="page-eyebrow">Análise Fundamentalista · Projeções Educativas</span>
-          <h1 style={styles.title}>
-            <span style={{ color: 'var(--brand)', display: 'inline-flex' }}><TrendingUpIcon size={22} /></span>
-            Projeções de Preço — 3M / 6M / 1 Ano
-          </h1>
+          <span className="page-eyebrow">Modelos Fundamentalistas · 3M / 6M / 1A</span>
+          <h1 style={styles.title}>Projeções de Preço</h1>
           <p style={styles.subtitle}>
-            Estimativas de <strong>possíveis cenários</strong> de valorização e desvalorização baseadas em modelos fundamentalistas clássicos (Graham e Bazin),
-            crescimento orgânico (ROE) e análise de risco (endividamento). Totalmente transparente e auditável.
+            Cenários otimista, base e pessimista estimados a partir de Graham, Bazin, crescimento orgânico (ROE) e risco de alavancagem.
           </p>
         </div>
       </div>

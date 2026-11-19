@@ -1,6 +1,6 @@
 import React from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { ScaleIcon, TrophyIcon, XIcon, TrendingUpIcon, BuildingIcon, PrinterIcon } from '../components/Icons';
+import { TrophyIcon, XIcon, TrendingUpIcon, BuildingIcon, PrinterIcon } from '../components/Icons';
 import ViabilityBadge from '../components/ViabilityBadge';
 import RadarChart from '../components/RadarChart';
 import StockLogo from '../components/StockLogo';
